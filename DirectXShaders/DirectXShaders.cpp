@@ -33,13 +33,13 @@ namespace Tutorial
 
     bool DirectXShaders::onKeyEvent(const KeyboardEvent& keyEvent)
     {
-        // TODO
+        // TODO: panning
         return false;
     }
 
     bool DirectXShaders::onMouseEvent(const MouseEvent& mouseEvent)
     {
-        // TODO
+        // TODO: zooming
         return false;
     }
 
@@ -50,6 +50,7 @@ namespace Tutorial
 
 int main ()
 {
+    // TODO: menu with settings
     Tutorial::DirectXShaders::UniquePtr pRenderer = std::make_unique<Tutorial::DirectXShaders>();
 
     SampleConfig config;

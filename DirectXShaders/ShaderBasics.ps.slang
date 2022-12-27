@@ -1,6 +1,9 @@
 cbuffer PixelShadeCB
 {
-    float2 iResolution;
+    float2  iResolution;
+    int     iIterations;
+    float2  iPanningPos;
+    float   iZoom;
 };
 
 // VertexShader output
@@ -25,16 +28,16 @@ float2 to_mandelbrot_space(float2 screen_pos)
     return float2((screen_pos.x / iResolution.x) * 3.5 - 2.5, (screen_pos.y / iResolution.y) * 2 - 1);
 }
 
+// TODO: return fractal color instead, so it can have a nicer gradient
 bool is_mandelbrot(float2 c)
 {    
     float2 n = c;
-    for (int i = 0; i < 128; ++i)
+    for (int i = 0; i < 64; ++i)
     {
         n = cpx_mul(n, n) + c;
     }
-    bool in_set = sqrt(n.x * n.x + n.y * n.y) < 0xFFFFFF;
 
-    return in_set;
+    return sqrt(n.x * n.x + n.y * n.y) < 0xFFFFFF;
 }
 
 float4 main(PSInput input) : SV_TARGET
