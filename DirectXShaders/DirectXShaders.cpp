@@ -7,8 +7,8 @@ namespace Tutorial
     void DirectXShaders::onLoad(RenderContext* pRenderContext)
     {
         Program::Desc programDesc;
-        programDesc.addShaderLibrary("Samples/DirectXShaders/ShaderBasics.3d.slang").vsEntry("main");
-        programDesc.addShaderLibrary("Samples/DirectXShaders/ShaderBasics.ps.slang").psEntry("main");
+        programDesc.addShaderLibrary("Samples/DirectXShaders/Mandelbrot.vs.slang").vsEntry("main");
+        programDesc.addShaderLibrary("Samples/DirectXShaders/Mandelbrot.ps.slang").psEntry("main");
 
         mpMainPass = FullScreenPass::create(programDesc);
     }
@@ -17,14 +17,13 @@ namespace Tutorial
     {
         const float width = (float)pTargetFbo->getWidth();
         const float height = (float)pTargetFbo->getHeight();
-        mpMainPass["PixelShadeCB"]["iResolution"] = float2(width, height);
+        mpMainPass["MandelbrotPSCB"]["iResolution"] = float2(width, height);
+        mpMainPass["MandelbrotPSCB"]["iIterations"] = mGUISettings.iterations;
+        mpMainPass["MandelbrotPSCB"]["iPoitionOffset"] = mGUISettings.positionOffset;
+        mpMainPass["MandelbrotPSCB"]["iZoom"] = mGUISettings.zoom;
 
         // run final pass
         mpMainPass->execute(pRenderContext, pTargetFbo);
-    }
-
-    void DirectXShaders::onShutdown()
-    {
     }
 
     void DirectXShaders::onResizeSwapChain(uint32_t width, uint32_t height)
@@ -43,14 +42,19 @@ namespace Tutorial
         return false;
     }
 
-    void DirectXShaders::onHotReload(HotReloadFlags reloaded)
+    void DirectXShaders::onGuiRender(Falcor::Gui* pGui)
     {
+        Gui::Window window(pGui, "Mandelbrot set", { 500, 250 }, { 10, 10 });
+        gpFramework->renderGlobalUI(pGui);
+        window.text("Move around with w, a, s, d or arrow keys, and zoom with scroll wheel");
+        window.slider("Zoom level", mGUISettings.zoom, 0.001f, 70.f);
+        window.slider("Iterations", mGUISettings.iterations, 1, 2048);
+        window.slider("Position", mGUISettings.positionOffset, -3.0, 3.0);
     }
 }
 
 int main ()
 {
-    // TODO: menu with settings
     Tutorial::DirectXShaders::UniquePtr pRenderer = std::make_unique<Tutorial::DirectXShaders>();
 
     SampleConfig config;

@@ -1,8 +1,8 @@
-cbuffer PixelShadeCB
+cbuffer MandelbrotPSCB
 {
     float2  iResolution;
     int     iIterations;
-    float2  iPanningPos;
+    float2  iPoitionOffset;
     float   iZoom;
 };
 
@@ -25,14 +25,15 @@ float2 cpx_mul(float2 c1, float2 c2)
 
 float2 to_mandelbrot_space(float2 screen_pos)
 {
-    return float2((screen_pos.x / iResolution.x) * 3.5 - 2.5, (screen_pos.y / iResolution.y) * 2 - 1);
+    return float2((screen_pos.x / iResolution.x) * 3.5 * (1 / iZoom) - 2.5 + iPoitionOffset.x,
+                  (screen_pos.y / iResolution.y) * 2 * (1 / iZoom) - 1 + iPoitionOffset.y);
 }
 
 // TODO: return fractal color instead, so it can have a nicer gradient
 bool is_mandelbrot(float2 c)
 {    
     float2 n = c;
-    for (int i = 0; i < 64; ++i)
+    for (int i = 0; i < iIterations; ++i)
     {
         n = cpx_mul(n, n) + c;
     }
