@@ -30,3 +30,11 @@
 *.exe
 *.out
 *.app
+
+# Falcor built in samples
+Visualization2D
+ShaderToy
+ProjectTemplate
+ModelViewer
+HelloDXR
+CudaInterop
