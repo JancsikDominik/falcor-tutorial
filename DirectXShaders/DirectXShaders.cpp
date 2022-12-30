@@ -17,10 +17,10 @@ namespace Tutorial
     {
         const float width = (float)pTargetFbo->getWidth();
         const float height = (float)pTargetFbo->getHeight();
-        mpMainPass["MandelbrotPSCB"]["iResolution"] = float2(width, height);
-        mpMainPass["MandelbrotPSCB"]["iIterations"] = mGUISettings.iterations;
-        mpMainPass["MandelbrotPSCB"]["iPoitionOffset"] = mGUISettings.positionOffset;
-        mpMainPass["MandelbrotPSCB"]["iZoom"] = mGUISettings.zoom;
+        mpMainPass["MandelbrotPSCB"]["iResolution"] = mSettings.resolution;
+        mpMainPass["MandelbrotPSCB"]["iIterations"] = mSettings.iterations;
+        mpMainPass["MandelbrotPSCB"]["iPoitionOffset"] = mSettings.positionOffset;
+        mpMainPass["MandelbrotPSCB"]["iZoom"] = mSettings.zoom;
 
         // run final pass
         mpMainPass->execute(pRenderContext, pTargetFbo);
@@ -28,17 +28,70 @@ namespace Tutorial
 
     void DirectXShaders::onResizeSwapChain(uint32_t width, uint32_t height)
     {
+        mSettings.resolution = { width, height };
     }
 
     bool DirectXShaders::onKeyEvent(const KeyboardEvent& keyEvent)
     {
-        // TODO: panning
+        if (keyEvent.type == KeyboardEvent::Type::KeyPressed || keyEvent.type == KeyboardEvent::Type::KeyRepeated)
+        {
+            const float step = 1 / (mSettings.zoom * 3);
+
+            switch(keyEvent.key)
+            {
+            case Input::Key::D:
+            case Input::Key::Right:
+                if (mSettings.positionOffset.x < 3.0f)
+                {
+                    mSettings.positionOffset.x += step;
+                    return true;
+                }
+                return false;
+
+            case Input::Key::A:
+            case Input::Key::Left:
+                if (mSettings.positionOffset.x > -3.0f)
+                {
+                    mSettings.positionOffset.x -= step;
+                    return true;
+                }
+                return false;
+
+            case Input::Key::W:
+            case Input::Key::Up:
+                if (mSettings.positionOffset.y > -3.0f)
+                {
+                    mSettings.positionOffset.y -= step;
+                    return true;
+                }
+                return false;
+
+            case Input::Key::S:
+            case Input::Key::Down:
+                if (mSettings.positionOffset.y < 3.0f)
+                {
+                    mSettings.positionOffset.y += step;
+                    return true;
+                }
+                return false;
+
+            default:
+                return false;
+            }
+        }
+
         return false;
     }
 
     bool DirectXShaders::onMouseEvent(const MouseEvent& mouseEvent)
     {
-        // TODO: zooming
+        if (mouseEvent.type == MouseEvent::Type::Wheel)
+        {
+            mSettings.zoom += mouseEvent.wheelDelta.y * (mSettings.zoom / 2);
+
+            return true;
+        }
+
         return false;
     }
 
@@ -47,9 +100,9 @@ namespace Tutorial
         Gui::Window window(pGui, "Mandelbrot set", { 500, 250 }, { 10, 10 });
         gpFramework->renderGlobalUI(pGui);
         window.text("Move around with w, a, s, d or arrow keys, and zoom with scroll wheel");
-        window.slider("Zoom level", mGUISettings.zoom, 0.001f, 70.f);
-        window.slider("Iterations", mGUISettings.iterations, 1, 2048);
-        window.slider("Position", mGUISettings.positionOffset, -3.0, 3.0);
+        window.slider("Zoom level", mSettings.zoom, 0.33f, 70.f);
+        window.slider("Iterations", mSettings.iterations, 5, 2048);
+        window.slider("Position", mSettings.positionOffset, -3.0, 3.0);
     }
 }
 

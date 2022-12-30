@@ -9,6 +9,7 @@ namespace Tutorial
         float           zoom = 1;
         int             iterations = 64;
         Falcor::float2  positionOffset{ 0, 0 };
+        Falcor::float2  resolution{ 0, 0 };
     };
 
     class DirectXShaders final : public Falcor::IRenderer
@@ -23,6 +24,6 @@ namespace Tutorial
 
     private:
         Falcor::FullScreenPass::SharedPtr mpMainPass;
-        MandelbrotGUI mGUISettings;
+        MandelbrotGUI mSettings;
     };
 }
