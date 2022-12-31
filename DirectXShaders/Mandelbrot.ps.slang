@@ -9,19 +9,8 @@ cbuffer MandelbrotPSCB
 // VertexShader output
 struct PSInput
 {
-    float4 color : COLOR;
     float4 position : SV_Position;
 };
-
-// function that multiplies 2 complex numbers
-float2 cpx_mul(float2 c1, float2 c2)
-{
-    float a = c1.x;
-    float b = c1.y;
-    float c = c2.x;
-    float d = c2.y;
-    return float2(a * c - b * d, b * c + a * d);
-}
 
 float2 to_mandelbrot_space(float2 screen_pos)
 {
@@ -29,27 +18,42 @@ float2 to_mandelbrot_space(float2 screen_pos)
                   (screen_pos.y / iResolution.y) * 2 * (1 / iZoom) - 1 + iPoitionOffset.y);
 }
 
-// TODO: return fractal color instead, so it can have a nicer gradient
-bool is_mandelbrot(float2 c)
+// plotting mandelbrot set using the escape time algorithm
+float4 get_pixel_color(float2 c)
 {    
-    float2 n = c;
-    for (int i = 0; i < iIterations; ++i)
+    float x = 0.0;
+    float y = 0.0;
+    int i;
+    for (i = 0; (i < iIterations) && ((x * x + y * y) < 4); i++)
     {
-        n = cpx_mul(n, n) + c;
+        float tmp = (x * x) - (y * y) + c.x;
+        y = (2 * x * y) + c.y;
+        x = tmp;
     }
 
-    return sqrt(n.x * n.x + n.y * n.y) < 0xFFFFFF;
+    // c is in mandelbrot set
+    if (i == iIterations)
+    {
+        return float4(0, 0, 0, 1);
+    }
+    else
+    {
+        // making color palette respect to i
+
+        float r = i * 2;
+        // normalizing between 0 and 1
+        r = (r % 255) / 255;
+        float g = i * 4;
+        g = (g % 255) / 255;
+        float b = i * 8;
+        b = (b % 255) / 255;
+
+        return float4(r, g, b, 1);
+    }
 }
 
 float4 main(PSInput input) : SV_TARGET
 {
-    float2 asd = to_mandelbrot_space(input.position.xy);
-    if (is_mandelbrot(asd))
-    {
-        return input.color;
-    }
-    else
-    {
-        return float4(0, 0, 0, 1);
-    }
+    float2 complex_plane_pos = to_mandelbrot_space(input.position.xy);
+    return get_pixel_color(complex_plane_pos);
 }

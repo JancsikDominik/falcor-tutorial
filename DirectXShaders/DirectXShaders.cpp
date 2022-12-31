@@ -87,22 +87,43 @@ namespace Tutorial
     {
         if (mouseEvent.type == MouseEvent::Type::Wheel)
         {
-            mSettings.zoom += mouseEvent.wheelDelta.y * (mSettings.zoom / 2);
+            // zooming to current cursor position
+            const float2& mouseBeforeZoom = NormalizedScreenPosToMandelbrotPos(mouseEvent.pos);
+            mSettings.zoom += mouseEvent.wheelDelta.y * (mSettings.zoom / 5);
+            const float2& mouseAfterZoom = NormalizedScreenPosToMandelbrotPos(mouseEvent.pos);
+
+            mSettings.positionOffset += mouseBeforeZoom - mouseAfterZoom;
 
             return true;
         }
+
+        if (mouseEvent.type == MouseEvent::Type::Move)
+            mousePos = mouseEvent.pos;
 
         return false;
     }
 
     void DirectXShaders::onGuiRender(Falcor::Gui* pGui)
     {
-        Gui::Window window(pGui, "Mandelbrot set", { 500, 250 }, { 10, 10 });
+        Gui::Window window(pGui, "Mandelbrot set", { 550, 250 }, { 10, 10 });
         gpFramework->renderGlobalUI(pGui);
         window.text("Move around with w, a, s, d or arrow keys, and zoom with scroll wheel");
         window.slider("Zoom level", mSettings.zoom, 0.33f, 70.f);
         window.slider("Iterations", mSettings.iterations, 5, 2048);
         window.slider("Position", mSettings.positionOffset, -3.0, 3.0);
+        if (window.button("Reset settings"))
+        {
+            // keeping resolution
+            float2 res = mSettings.resolution;
+            mSettings = MandelbrotGUI();
+            mSettings.resolution = res;
+        }
+    }
+
+    float2 DirectXShaders::NormalizedScreenPosToMandelbrotPos(const float2& pos) const
+    {
+        return { pos.x * 3.5f * (1.0f / mSettings.zoom) - 2.5f + mSettings.positionOffset.x,
+                 pos.y * 2.0f * (1.0f / mSettings.zoom) - 1.0f + mSettings.positionOffset.y };
     }
 }
 
