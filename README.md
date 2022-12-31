@@ -1,2 +1,1 @@
-# szakdolgozat
-Falcor keretrendszer használata grafikus alkalmazások fejlesztéséhez
+Usage: copy paste files to falcor's sample folder
