@@ -1,4 +1,4 @@
-1.  Shaders (vertex + fragment), gui, keyboard and mouse input (DirectXShaders)
+1.  Shaders (vertex + fragment), gui, keyboard and mouse input (MandelbrotSet)
 2.  Buffers (VAO,VBO,FBO) Transformations in 3D space, loading meshes
 3.  Normal vectors, lights (Blinn–Phong reflection model for now, maybe PBR if I have time), textures
 4.  Gememotry shaders, low poly rendering, rendering normal vectors
