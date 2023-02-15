@@ -2,34 +2,35 @@
 #include "Falcor.h"
 #include "RenderGraph/BasePasses/FullScreenPass.h"
 
-namespace Tutorial
+namespace Falcor::Tutorial
 {
     struct MandelbrotGUI
     {
-        float           zoom = 1;
-        int             iterations = 256;
-        Falcor::float2  positionOffset{ 0, 0 };
-        Falcor::float2  resolution{ 0, 0 };
+        float   zoom = 1;
+        int     iterations = 256;
+        float2  positionOffset{ 0, 0 };
+        float2  resolution{ 0, 0 };
     };
 
-    class MandelbrotRenderer final : public Falcor::IRenderer
+    class MandelbrotRenderer final : public IRenderer
     {
     public:
         // IRenderer implementation
-        void onLoad(Falcor::RenderContext* pRenderContext) override;
-        void onFrameRender(Falcor::RenderContext* pRenderContext, const Falcor::Fbo::SharedPtr& pTargetFbo) override;
+        void onLoad(RenderContext* pRenderContext) override;
+        void onFrameRender(RenderContext* pRenderContext, const Fbo::SharedPtr& pTargetFbo) override;
         void onResizeSwapChain(uint32_t width, uint32_t height) override;
-        bool onKeyEvent(const Falcor::KeyboardEvent& keyEvent) override;
-        bool onMouseEvent(const Falcor::MouseEvent& mouseEvent) override;
-        void onGuiRender(Falcor::Gui* pGui) override;
+        bool onKeyEvent(const KeyboardEvent& keyEvent) override;
+        bool onMouseEvent(const MouseEvent& mouseEvent) override;
+        void onGuiRender(Gui* pGui) override;
 
 
         // own functions
-        Falcor::float2 NormalizedScreenPosToMandelbrotPos(const Falcor::float2& pos) const;
+        float2 NormalizedScreenPosToMandelbrotPos(const float2& pos) const;
 
     private:
-        Falcor::FullScreenPass::SharedPtr mpMainPass;
+        FullScreenPass::SharedPtr mpMainPass;
         MandelbrotGUI mSettings;
-        Falcor::float2 mousePos{ 0, 0 };
+        bool mIsLeftButtonDown = false;
+        float2 mPrevMousePos{ 0, 0 };
     };
 }

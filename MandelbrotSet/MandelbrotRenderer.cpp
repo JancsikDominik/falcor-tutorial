@@ -1,8 +1,6 @@
 #include "MandelbrotRenderer.h"
 
-using namespace Falcor;
-
-namespace Tutorial
+namespace Falcor::Tutorial
 {
     void MandelbrotRenderer::onLoad(RenderContext* pRenderContext)
     {
@@ -85,13 +83,29 @@ namespace Tutorial
 
     bool MandelbrotRenderer::onMouseEvent(const MouseEvent& mouseEvent)
     {
+        // panning with mouse
+        if (mouseEvent.type == MouseEvent::Type::ButtonDown || mouseEvent.type == MouseEvent::Type::ButtonUp)
+        {
+            mIsLeftButtonDown = mouseEvent.type == MouseEvent::Type::ButtonDown;
+            return true;
+        }
+
+        if (mouseEvent.type == MouseEvent::Type::Move && mIsLeftButtonDown)
+        {
+            const float2& newMousePos = NormalizedScreenPosToMandelbrotPos(mouseEvent.pos);
+            mSettings.positionOffset += mPrevMousePos - newMousePos;
+
+            return true;
+        }
+
+        mPrevMousePos = NormalizedScreenPosToMandelbrotPos(mouseEvent.pos);
+
+        // zooming to mouse position
         if (mouseEvent.type == MouseEvent::Type::Wheel)
         {
-            // zooming to current cursor position
             const float2& mouseBeforeZoom = NormalizedScreenPosToMandelbrotPos(mouseEvent.pos);
             mSettings.zoom += mouseEvent.wheelDelta.y * (mSettings.zoom / 5);
             const float2& mouseAfterZoom = NormalizedScreenPosToMandelbrotPos(mouseEvent.pos);
-
             mSettings.positionOffset += mouseBeforeZoom - mouseAfterZoom;
 
             return true;
@@ -102,9 +116,11 @@ namespace Tutorial
 
     void MandelbrotRenderer::onGuiRender(Falcor::Gui* pGui)
     {
-        Gui::Window window(pGui, "Mandelbrot set", { 550, 250 }, { 10, 10 });
+        Gui::Window window(pGui, "Settings", { 550, 275 }, { 5, 5 });
         gpFramework->renderGlobalUI(pGui);
-        window.text("Move around with w, a, s, d or arrow keys, and zoom with scroll wheel");
+        window.text("Move around with w, a, s, d or arrow keys.");
+        window.text("Zoom with scroll wheel.");
+        window.text("Holding the left button down and moving the mouse will pan the image.");
         window.slider("Zoom level", mSettings.zoom, 0.33f, 70.f);
         window.slider("Iterations", mSettings.iterations, 5, 2048);
         window.slider("Position", mSettings.positionOffset, -3.0, 3.0);
@@ -125,17 +141,17 @@ namespace Tutorial
     }
 }
 
-int main ()
+int main()
 {
-    Tutorial::MandelbrotRenderer::UniquePtr pRenderer = std::make_unique<Tutorial::MandelbrotRenderer>();
+    Falcor::Tutorial::MandelbrotRenderer::UniquePtr pRenderer = std::make_unique<Falcor::Tutorial::MandelbrotRenderer>();
 
-    SampleConfig config;
+    Falcor::SampleConfig config;
     config.windowDesc.width = 1280;
     config.windowDesc.height = 720;
     config.deviceDesc.enableVsync = true;
-    config.windowDesc.resizableWindow = true;
+    config.windowDesc.resizableWindow = false;
     config.windowDesc.title = "Mandelbrot set";
 
-    Sample::run(config, pRenderer);
+    Falcor::Sample::run(config, pRenderer);
     return 0;
 }
