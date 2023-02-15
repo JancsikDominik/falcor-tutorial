@@ -30,7 +30,7 @@ namespace Falcor::Tutorial
     private:
         FullScreenPass::SharedPtr mpMainPass;
         MandelbrotGUI mSettings;
-        bool mIsLeftButtonDown = false;
+        bool mIsMouseButtonDown = false;
         float2 mPrevMousePos{ 0, 0 };
     };
 }

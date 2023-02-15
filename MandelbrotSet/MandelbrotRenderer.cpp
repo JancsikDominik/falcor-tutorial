@@ -86,11 +86,11 @@ namespace Falcor::Tutorial
         // panning with mouse
         if (mouseEvent.type == MouseEvent::Type::ButtonDown || mouseEvent.type == MouseEvent::Type::ButtonUp)
         {
-            mIsLeftButtonDown = mouseEvent.type == MouseEvent::Type::ButtonDown;
+            mIsMouseButtonDown = mouseEvent.type == MouseEvent::Type::ButtonDown;
             return true;
         }
 
-        if (mouseEvent.type == MouseEvent::Type::Move && mIsLeftButtonDown)
+        if (mouseEvent.type == MouseEvent::Type::Move && mIsMouseButtonDown)
         {
             const float2& newMousePos = NormalizedScreenPosToMandelbrotPos(mouseEvent.pos);
             mSettings.positionOffset += mPrevMousePos - newMousePos;
@@ -120,7 +120,7 @@ namespace Falcor::Tutorial
         gpFramework->renderGlobalUI(pGui);
         window.text("Move around with w, a, s, d or arrow keys.");
         window.text("Zoom with scroll wheel.");
-        window.text("Holding the left button down and moving the mouse will pan the image.");
+        window.text("Holding down a mouse button and moving the mouse will pan the image.");
         window.slider("Zoom level", mSettings.zoom, 0.33f, 70.f);
         window.slider("Iterations", mSettings.iterations, 5, 2048);
         window.slider("Position", mSettings.positionOffset, -3.0, 3.0);
