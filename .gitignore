@@ -34,7 +34,6 @@
 # Falcor built in samples
 Visualization2D
 ShaderToy
-ProjectTemplate
-ModelViewer
+SampleAppTemplate
 HelloDXR
 CudaInterop

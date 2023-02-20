@@ -8,7 +8,7 @@ namespace Falcor::Tutorial
         programDesc.addShaderLibrary("Samples/MandelbrotSet/Mandelbrot.vs.slang").vsEntry("main");
         programDesc.addShaderLibrary("Samples/MandelbrotSet/Mandelbrot.ps.slang").psEntry("main");
 
-        mpMainPass = FullScreenPass::create(programDesc);
+        mpMainPass = FullScreenPass::create(getDevice(), programDesc);
     }
 
     void MandelbrotRenderer::onFrameRender(RenderContext* pRenderContext, const Fbo::SharedPtr& pTargetFbo)
@@ -24,7 +24,7 @@ namespace Falcor::Tutorial
         mpMainPass->execute(pRenderContext, pTargetFbo);
     }
 
-    void MandelbrotRenderer::onResizeSwapChain(uint32_t width, uint32_t height)
+    void MandelbrotRenderer::onResize(uint32_t width, uint32_t height)
     {
         mSettings.resolution = { width, height };
     }
@@ -117,7 +117,7 @@ namespace Falcor::Tutorial
     void MandelbrotRenderer::onGuiRender(Falcor::Gui* pGui)
     {
         Gui::Window window(pGui, "Settings", { 550, 275 }, { 5, 5 });
-        gpFramework->renderGlobalUI(pGui);
+        renderGlobalUI(pGui);
         window.text("Move around with w, a, s, d or arrow keys.");
         window.text("Zoom with scroll wheel.");
         window.text("Holding down a mouse button and moving the mouse will pan the image.");
@@ -143,15 +143,12 @@ namespace Falcor::Tutorial
 
 int main()
 {
-    Falcor::Tutorial::MandelbrotRenderer::UniquePtr pRenderer = std::make_unique<Falcor::Tutorial::MandelbrotRenderer>();
-
-    Falcor::SampleConfig config;
+    Falcor::SampleAppConfig config;
     config.windowDesc.width = 1280;
     config.windowDesc.height = 720;
-    config.deviceDesc.enableVsync = true;
     config.windowDesc.resizableWindow = false;
     config.windowDesc.title = "Mandelbrot set";
 
-    Falcor::Sample::run(config, pRenderer);
-    return 0;
+    Falcor::Tutorial::MandelbrotRenderer mandelbrotSet(config);
+    return mandelbrotSet.run();
 }

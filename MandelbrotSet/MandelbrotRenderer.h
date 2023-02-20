@@ -1,5 +1,6 @@
 #pragma once
 #include "Falcor.h"
+#include "Core/SampleApp.h"
 #include "RenderGraph/BasePasses/FullScreenPass.h"
 
 namespace Falcor::Tutorial
@@ -12,13 +13,17 @@ namespace Falcor::Tutorial
         float2  resolution{ 0, 0 };
     };
 
-    class MandelbrotRenderer final : public IRenderer
+    class MandelbrotRenderer final : public SampleApp
     {
     public:
-        // IRenderer implementation
+        MandelbrotRenderer(const SampleAppConfig& config) : SampleApp(config)
+        {
+        }
+
+        // SampleApp implementation
         void onLoad(RenderContext* pRenderContext) override;
         void onFrameRender(RenderContext* pRenderContext, const Fbo::SharedPtr& pTargetFbo) override;
-        void onResizeSwapChain(uint32_t width, uint32_t height) override;
+        void onResize(uint32_t width, uint32_t height) override;
         bool onKeyEvent(const KeyboardEvent& keyEvent) override;
         bool onMouseEvent(const MouseEvent& mouseEvent) override;
         void onGuiRender(Gui* pGui) override;
