@@ -6,4 +6,4 @@
 6.  Transparency, blending (particles?)
 7.  Normal mapping, post-processing (depth of field or outline on objects), mirror with render-to-texture using FBO, deferred vs. forward rendering
 
-TODO: 2, 3, 4, 5, 6, 7, documentation
+TODO: 2, 3, 4, 5, 6, 7, translate documentation to english and upload it
