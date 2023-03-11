@@ -117,7 +117,7 @@ namespace Falcor::Tutorial
     void MandelbrotRenderer::onGuiRender(Falcor::Gui* pGui)
     {
         Gui::Window window(pGui, "Settings", { 550, 275 }, { 5, 5 });
-        renderGlobalUI(pGui);
+        // renderGlobalUI(pGui);
         window.text("Move around with w, a, s, d or arrow keys.");
         window.text("Zoom with scroll wheel.");
         window.text("Holding down a mouse button and moving the mouse will pan the image.");
@@ -146,7 +146,6 @@ int main()
     Falcor::SampleAppConfig config;
     config.windowDesc.width = 1280;
     config.windowDesc.height = 720;
-    config.windowDesc.resizableWindow = false;
     config.windowDesc.title = "Mandelbrot set";
 
     Falcor::Tutorial::MandelbrotRenderer mandelbrotSet(config);

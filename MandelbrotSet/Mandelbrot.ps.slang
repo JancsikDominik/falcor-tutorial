@@ -31,7 +31,6 @@ float4 get_pixel_color(float2 c)
         x = tmp;
     }
 
-    // c is in mandelbrot set
     if (i == iIterations)
     {
         return float4(0, 0, 0, 1);
