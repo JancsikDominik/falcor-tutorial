@@ -89,9 +89,23 @@ namespace Falcor::Tutorial
         else
             loadModelFalcor(path);
 
-        const auto vbSize = static_cast<uint32_t>(sizeof(TriangleMesh::Vertex) * mpModel->getVertices().size());
-        mpVertexBuffer = Buffer::create(mpDevice.get(), vbSize, Buffer::BindFlags::Vertex, Buffer::CpuAccess::Write, mpModel->getVertices().data());
+        Buffer::SharedPtr pIndexBuffer;
+        const ResourceBindFlags ibBindFlags = Resource::BindFlags::Index | ResourceBindFlags::ShaderResource;
+        pIndexBuffer = Buffer::create(
+            mpDevice.get(),
+            sizeof(uint32_t) * mpModel->getIndices().size(),
+            ibBindFlags,
+            Buffer::CpuAccess::None,
+            mpModel->getIndices().data()
+        );
 
+        const ResourceBindFlags vbBindFlags = Resource::BindFlags::Vertex | ResourceBindFlags::ShaderResource;
+        mpVertexBuffer = Buffer::createStructured(
+            mpDevice.get(), sizeof(TriangleMesh::Vertex),
+            mpModel->getVertices().size(), vbBindFlags,
+            Buffer::CpuAccess::None,
+            mpModel->getVertices().data()
+        );
 
         const VertexLayout::SharedPtr pLayout = VertexLayout::create();
         const VertexBufferLayout::SharedPtr pBufLayout = VertexBufferLayout::create();
@@ -99,7 +113,7 @@ namespace Falcor::Tutorial
         pLayout->addBufferLayout(0, pBufLayout);
 
         const Vao::BufferVec buffers{ mpVertexBuffer };
-        mpVao = Vao::create(Vao::Topology::TriangleList, pLayout, buffers);
+        mpVao = Vao::create(Vao::Topology::TriangleList, pLayout, buffers, pIndexBuffer, ResourceFormat::R32Uint);
     }
 
     void ModelLoader::loadModelFalcor(const std::filesystem::path& path)
