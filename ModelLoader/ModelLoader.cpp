@@ -24,15 +24,9 @@ namespace Falcor::Tutorial
         mpState->setProgram(mpProgram);
 
         mpVars = GraphicsVars::create(mpDevice, mpProgram->getReflector());
-
-        RasterizerState::Desc rsDesc;
-        rsDesc.setFillMode(RasterizerState::FillMode::Solid).setCullMode(RasterizerState::CullMode::None).setScissorTest(true).setDepthClamp(false);
-        mpState->setRasterizerState(RasterizerState::create(rsDesc));
-
-        DepthStencilState::Desc dsDesc;
-        dsDesc.setDepthEnabled(false);
-        mpState->setDepthStencilState(DepthStencilState::create(dsDesc));
-        // mpCamera = Camera::create("main camera");
+        mpCamera = Camera::create("main camera");
+        mpCamera->setPosition({10, 0, 0});
+        mpCamera->setTarget({0, 0, 0});
     }
 
     void ModelLoader::onLoad(RenderContext* pRenderContext)
@@ -43,11 +37,11 @@ namespace Falcor::Tutorial
 
     void ModelLoader::onFrameRender(RenderContext* pRenderContext, const Fbo::SharedPtr& pTargetFbo)
     {
-        pRenderContext->clearFbo(pTargetFbo.get(), {0, 0, 0, 1}, 1.0f, 0, FboAttachmentType::All);
+        pRenderContext->clearFbo(pTargetFbo.get(), {0, 0.25, 0, 1}, 1.0f, 0, FboAttachmentType::All);
 
-        // mpVars["VSCBuffer"]["viewProjection"] = mpCamera->getViewProjMatrix();
-        mpState->setFbo(pTargetFbo, false);
+        mpVars["VSCBuffer"]["viewProjection"] = mpCamera->getViewProjMatrix();
         mpState->setVao(mpVao);
+        mpState->setFbo(pTargetFbo, false);
 
         pRenderContext->draw(mpState.get(), mpVars.get(), mpModel->getVertices().size(), 0);
     }

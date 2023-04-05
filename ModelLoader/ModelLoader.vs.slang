@@ -1,12 +1,11 @@
 struct VSIn
 {
-    float3 localPos : SV_POSITION;
+    float4 objSpacePos : SV_Position;
 };
 
 struct VSOut
 {
-    float3 worldPos;
-    float4 color;
+    float4 worldPos : SV_Position;
 };
 
 cbuffer VSCBuffer
@@ -18,8 +17,7 @@ VSOut main(VSIn vsIn)
 {
     VSOut out;
 
-    out.worldPos = mul(viewProjection, float4(vsIn.localPos, 1.f)).xyz;
-    out.color = float4(0.25, 0.25, 1, 1);
+    out.worldPos = mul(viewProjection, vsIn.objSpacePos);
 
     return out;
 }
