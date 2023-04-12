@@ -15,7 +15,7 @@ static const float4 positions[6] =
 };
 
 VSOutput main(uint vertexID : SV_VertexID)
-{
+{   
     VSOutput output;
     output.position = positions[vertexID];
 

@@ -1,9 +1,10 @@
 struct PSIn
 {
-    float4 worldPos : SV_Position;
+    float4 pos : SV_Position;
+    float4 color : COLOR;
 };
 
-float4 main(PSIn in) : SV_TARGET
+float4 main(PSIn input) : SV_TARGET
 {
-    return in.worldPos;
+    return input.color;
 }

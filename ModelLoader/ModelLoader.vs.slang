@@ -1,23 +1,18 @@
-struct VSIn
-{
-    float4 objSpacePos : SV_Position;
-};
-
-struct VSOut
-{
-    float4 worldPos : SV_Position;
-};
-
 cbuffer VSCBuffer
 {
     matrix<float, 4, 4> viewProjection;
 }
 
-VSOut main(VSIn vsIn)
+struct VSOut
 {
-    VSOut out;
+    float4 pos : SV_Position;
+    float4 color : COLOR;
+};
 
-    out.worldPos = mul(viewProjection, vsIn.objSpacePos);
-
-    return out;
+VSOut main(float3 objSpacePos : POSW)
+{
+    VSOut output;
+    output.pos = mul(viewProjection, float4(objSpacePos, 1));
+    output.color = float4(objSpacePos, 1);
+    return output;
 }

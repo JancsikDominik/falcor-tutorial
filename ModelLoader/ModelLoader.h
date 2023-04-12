@@ -14,7 +14,7 @@ namespace Falcor::Tutorial
         struct ModelLoaderSettings
         {
             bool showFPS = true;
-            bool useCustomLoader = false;
+            bool useCustomLoader = true;
         };
 
         explicit ModelLoader(const SampleAppConfig& config);
@@ -34,13 +34,14 @@ namespace Falcor::Tutorial
         void loadModelFromObj(const std::filesystem::path& path);
 
         Camera::SharedPtr mpCamera;
+        FirstPersonCameraControllerCommon<false>::SharedPtr mpCameraController;
         TriangleMesh::SharedPtr mpModel;
         ModelLoaderSettings mSettings;
 
         Buffer::SharedPtr mpVertexBuffer;
         Vao::SharedPtr mpVao;
 
-        GraphicsState::SharedPtr mpState;
+        GraphicsState::SharedPtr mpGraphicsState;
         GraphicsVars::SharedPtr mpVars;
         std::shared_ptr<Device> mpDevice;
         GraphicsProgram::SharedPtr mpProgram;

@@ -4,6 +4,8 @@
 #include "Utils/UI/TextRenderer.h"
 
 // from std
+#include "ModelLoader.h"
+
 #include <fstream>
 
 
@@ -20,30 +22,38 @@ namespace Falcor::Tutorial
         programDesc.addShaderLibrary("Samples/ModelLoader/ModelLoader.ps.slang").psEntry("main");
 
         mpProgram = GraphicsProgram::create(mpDevice, programDesc);
-        mpState = GraphicsState::create(mpDevice);
-        mpState->setProgram(mpProgram);
-
+        mpGraphicsState = GraphicsState::create(mpDevice);
+        mpGraphicsState->setProgram(mpProgram);
         mpVars = GraphicsVars::create(mpDevice, mpProgram->getReflector());
+
+        RasterizerState::Desc rsDesc;
+        rsDesc.setCullMode(RasterizerState::CullMode::None);
+        rsDesc.setFillMode(RasterizerState::FillMode::Wireframe);
+        mpGraphicsState->setRasterizerState(RasterizerState::create(rsDesc));
+
         mpCamera = Camera::create("main camera");
-        mpCamera->setPosition({10, 0, 0});
+        mpCamera->setPosition({10, 3, 0});
         mpCamera->setTarget({0, 0, 0});
+
+        mpCameraController = FirstPersonCameraController::create(mpCamera);
     }
 
     void ModelLoader::onLoad(RenderContext* pRenderContext)
     {
-        // TODO: dont do this xd
-        loadModel("C:/Users/Jancsik/Documents/suzanne.obj");
+        // TODO: dont do this
+        loadModel("C:/Users/Jancsik/Documents/cube.obj");
     }
 
     void ModelLoader::onFrameRender(RenderContext* pRenderContext, const Fbo::SharedPtr& pTargetFbo)
     {
+        mpCameraController->update();
         pRenderContext->clearFbo(pTargetFbo.get(), {0, 0.25, 0, 1}, 1.0f, 0, FboAttachmentType::All);
 
         mpVars["VSCBuffer"]["viewProjection"] = mpCamera->getViewProjMatrix();
-        mpState->setVao(mpVao);
-        mpState->setFbo(pTargetFbo, false);
 
-        pRenderContext->draw(mpState.get(), mpVars.get(), mpModel->getVertices().size(), 0);
+        mpGraphicsState->setFbo(pTargetFbo);
+
+        pRenderContext->drawIndexed(mpGraphicsState.get(), mpVars.get(), mpModel->getIndices().size(), 0, 0);
     }
 
     void ModelLoader::onResize(uint32_t width, uint32_t height)
@@ -53,7 +63,7 @@ namespace Falcor::Tutorial
 
         if (mpCamera != nullptr)
         {
-            mpCamera->setFocalLength(18);
+            mpCamera->setFocalLength(60.f);
             const float aspectRatio = (w / h);
             mpCamera->setAspectRatio(aspectRatio);
         }
@@ -61,14 +71,12 @@ namespace Falcor::Tutorial
 
     bool ModelLoader::onKeyEvent(const KeyboardEvent& keyEvent)
     {
-        // TODO: camera controls
-        return true;
+        return mpCameraController->onKeyEvent(keyEvent);
     }
 
     bool ModelLoader::onMouseEvent(const MouseEvent& mouseEvent)
     {
-        // TODO: camera controls
-        return true;
+        return mpCameraController->onMouseEvent(mouseEvent);
     }
 
     void ModelLoader::onGuiRender(Gui* pGui)
@@ -85,9 +93,10 @@ namespace Falcor::Tutorial
 
         Buffer::SharedPtr pIndexBuffer;
         const ResourceBindFlags ibBindFlags = Resource::BindFlags::Index | ResourceBindFlags::ShaderResource;
-        pIndexBuffer = Buffer::create(
+        pIndexBuffer = Buffer::createStructured(
             mpDevice.get(),
-            sizeof(uint32_t) * mpModel->getIndices().size(),
+            sizeof(uint32_t),
+            mpModel->getIndices().size(),
             ibBindFlags,
             Buffer::CpuAccess::None,
             mpModel->getIndices().data()
@@ -95,19 +104,23 @@ namespace Falcor::Tutorial
 
         const ResourceBindFlags vbBindFlags = Resource::BindFlags::Vertex | ResourceBindFlags::ShaderResource;
         mpVertexBuffer = Buffer::createStructured(
-            mpDevice.get(), sizeof(TriangleMesh::Vertex),
-            mpModel->getVertices().size(), vbBindFlags,
+            mpDevice.get(),
+            sizeof(TriangleMesh::Vertex),
+            mpModel->getVertices().size(),
+            vbBindFlags,
             Buffer::CpuAccess::None,
             mpModel->getVertices().data()
         );
 
         const VertexLayout::SharedPtr pLayout = VertexLayout::create();
         const VertexBufferLayout::SharedPtr pBufLayout = VertexBufferLayout::create();
-        pBufLayout->addElement("SV_POSITION", offsetof(TriangleMesh::Vertex, position), ResourceFormat::RG32Float, 1, 0);
+        pBufLayout->addElement("POSW", offsetof(TriangleMesh::Vertex, position), ResourceFormat::RG32Float, 1, 0);
         pLayout->addBufferLayout(0, pBufLayout);
 
         const Vao::BufferVec buffers{ mpVertexBuffer };
         mpVao = Vao::create(Vao::Topology::TriangleList, pLayout, buffers, pIndexBuffer, ResourceFormat::R32Uint);
+
+        mpGraphicsState->setVao(mpVao);
     }
 
     void ModelLoader::loadModelFalcor(const std::filesystem::path& path)
