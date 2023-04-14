@@ -1,6 +1,7 @@
 cbuffer VSCBuffer
 {
-    matrix<float, 4, 4> viewProjection;
+    float4x4 viewProjection;
+    float4x4 model;
 }
 
 struct VSOut
@@ -9,10 +10,18 @@ struct VSOut
     float4 color : COLOR;
 };
 
-VSOut main(float3 objSpacePos : POSW)
+struct VSIn
+{
+    float3 objSpacePos : POSOBJ;
+    float3 texCoord : TEXCOORD;
+    float3 normal : NORMAL;
+};
+
+VSOut main(in VSIn input)
 {
     VSOut output;
-    output.pos = mul(viewProjection, float4(objSpacePos, 1));
-    output.color = float4(objSpacePos, 1);
+    float4x4 mvp = mul(viewProjection, model);
+    output.pos = mul(mvp, float4(input.objSpacePos, 1));
+    output.color = float4(input.objSpacePos, 1);
     return output;
 }

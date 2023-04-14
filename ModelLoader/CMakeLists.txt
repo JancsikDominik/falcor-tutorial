@@ -5,8 +5,6 @@ target_sources(ModelLoader PRIVATE
     ModelLoader.h
     ModelLoader.ps.slang
     ModelLoader.vs.slang
-	Mandelbrot.ps.slang
-	Mandelbrot.vs.slang
 )
 
 target_copy_shaders(ModelLoader Samples/ModelLoader)

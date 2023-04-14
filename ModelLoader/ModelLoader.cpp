@@ -3,9 +3,6 @@
 // from Falcor
 #include "Utils/UI/TextRenderer.h"
 
-// from std
-#include "ModelLoader.h"
-
 #include <fstream>
 
 
@@ -31,16 +28,21 @@ namespace Falcor::Tutorial
         rsDesc.setFillMode(RasterizerState::FillMode::Wireframe);
         mpGraphicsState->setRasterizerState(RasterizerState::create(rsDesc));
 
+        DepthStencilState::Desc dsDesc;
+        dsDesc.setDepthEnabled(false);
+        mpGraphicsState->setDepthStencilState(DepthStencilState::create(dsDesc));
+
         mpCamera = Camera::create("main camera");
-        mpCamera->setPosition({10, 3, 0});
+        mpCamera->setPosition({6, 3, 3});
         mpCamera->setTarget({0, 0, 0});
+        mpCamera->setDepthRange(0.1f, 1000.f);
 
         mpCameraController = FirstPersonCameraController::create(mpCamera);
     }
 
     void ModelLoader::onLoad(RenderContext* pRenderContext)
     {
-        // TODO: dont do this
+        // TODO: move load model to ui
         loadModel("C:/Users/Jancsik/Documents/cube.obj");
     }
 
@@ -48,7 +50,7 @@ namespace Falcor::Tutorial
     {
         mpCameraController->update();
         pRenderContext->clearFbo(pTargetFbo.get(), {0, 0.25, 0, 1}, 1.0f, 0, FboAttachmentType::All);
-
+        mpVars["VSCBuffer"]["model"] = float4x4(1.f); // identity matrix
         mpVars["VSCBuffer"]["viewProjection"] = mpCamera->getViewProjMatrix();
 
         mpGraphicsState->setFbo(pTargetFbo);
@@ -63,7 +65,7 @@ namespace Falcor::Tutorial
 
         if (mpCamera != nullptr)
         {
-            mpCamera->setFocalLength(60.f);
+            mpCamera->setFocalLength(30.f);
             const float aspectRatio = (w / h);
             mpCamera->setAspectRatio(aspectRatio);
         }
@@ -82,6 +84,7 @@ namespace Falcor::Tutorial
     void ModelLoader::onGuiRender(Gui* pGui)
     {
         // TODO: switch between loading methods (my loading vs. built in)
+        // TODO: CullMode mode, FillMode
     }
 
     void ModelLoader::loadModel(const std::filesystem::path& path)
@@ -92,7 +95,7 @@ namespace Falcor::Tutorial
             loadModelFalcor(path);
 
         Buffer::SharedPtr pIndexBuffer;
-        const ResourceBindFlags ibBindFlags = Resource::BindFlags::Index | ResourceBindFlags::ShaderResource;
+        const ResourceBindFlags ibBindFlags = Resource::BindFlags::Index | ResourceBindFlags::ShaderResource | ResourceBindFlags::UnorderedAccess;
         pIndexBuffer = Buffer::createStructured(
             mpDevice.get(),
             sizeof(uint32_t),
@@ -102,8 +105,8 @@ namespace Falcor::Tutorial
             mpModel->getIndices().data()
         );
 
-        const ResourceBindFlags vbBindFlags = Resource::BindFlags::Vertex | ResourceBindFlags::ShaderResource;
-        mpVertexBuffer = Buffer::createStructured(
+        const ResourceBindFlags vbBindFlags = Resource::BindFlags::Vertex | ResourceBindFlags::ShaderResource | ResourceBindFlags::UnorderedAccess;
+        Buffer::SharedPtr pVertexBuffer = Buffer::createStructured(
             mpDevice.get(),
             sizeof(TriangleMesh::Vertex),
             mpModel->getVertices().size(),
@@ -114,13 +117,15 @@ namespace Falcor::Tutorial
 
         const VertexLayout::SharedPtr pLayout = VertexLayout::create();
         const VertexBufferLayout::SharedPtr pBufLayout = VertexBufferLayout::create();
-        pBufLayout->addElement("POSW", offsetof(TriangleMesh::Vertex, position), ResourceFormat::RG32Float, 1, 0);
+        pBufLayout->addElement("POSOBJ", offsetof(TriangleMesh::Vertex, position), ResourceFormat::RG32Float, 1, 0);
+        pBufLayout->addElement("TEXCOORD", offsetof(TriangleMesh::Vertex, texCoord), ResourceFormat::RG32Float, 1, 1);
+        pBufLayout->addElement("NORMAL", offsetof(TriangleMesh::Vertex, normal), ResourceFormat::RG32Float, 1, 2);
         pLayout->addBufferLayout(0, pBufLayout);
 
-        const Vao::BufferVec buffers{ mpVertexBuffer };
-        mpVao = Vao::create(Vao::Topology::TriangleList, pLayout, buffers, pIndexBuffer, ResourceFormat::R32Uint);
+        const Vao::BufferVec buffers{ pVertexBuffer };
+        Vao::SharedPtr pVao = Vao::create(Vao::Topology::TriangleStrip, pLayout, buffers, pIndexBuffer, ResourceFormat::R32Uint);
 
-        mpGraphicsState->setVao(mpVao);
+        mpGraphicsState->setVao(pVao);
     }
 
     void ModelLoader::loadModelFalcor(const std::filesystem::path& path)
@@ -185,7 +190,8 @@ namespace Falcor::Tutorial
                     std::string vertexPositionIndex;
                     while (std::getline(ss, vertexPositionIndex, '/'))
                     {
-                        indices.push_back(std::stoi(vertexPositionIndex));
+                        // .obj files index from 1, not from the usual 0
+                        indices.push_back(std::stoi(vertexPositionIndex) - 1);
                         // not using textures, or normals
                         break;
                     }
