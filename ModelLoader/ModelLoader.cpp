@@ -23,13 +23,10 @@ namespace Falcor::Tutorial
         mpGraphicsState->setProgram(mpProgram);
         mpVars = GraphicsVars::create(mpDevice, mpProgram->getReflector());
 
-        RasterizerState::Desc rsDesc;
-        rsDesc.setCullMode(RasterizerState::CullMode::None);
-        rsDesc.setFillMode(RasterizerState::FillMode::Wireframe);
-        mpGraphicsState->setRasterizerState(RasterizerState::create(rsDesc));
+        applyRasterStateSettings();
 
         DepthStencilState::Desc dsDesc;
-        dsDesc.setDepthEnabled(false);
+        dsDesc.setDepthEnabled(true);
         mpGraphicsState->setDepthStencilState(DepthStencilState::create(dsDesc));
 
         mpCamera = Camera::create("main camera");
@@ -50,12 +47,13 @@ namespace Falcor::Tutorial
     {
         mpCameraController->update();
         pRenderContext->clearFbo(pTargetFbo.get(), {0, 0.25, 0, 1}, 1.0f, 0, FboAttachmentType::All);
-        mpVars["VSCBuffer"]["model"] = float4x4(1.f); // identity matrix
+        mpVars["VSCBuffer"]["model"] = float4x4(1); // identity matrix
         mpVars["VSCBuffer"]["viewProjection"] = mpCamera->getViewProjMatrix();
 
         mpGraphicsState->setFbo(pTargetFbo);
 
-        pRenderContext->drawIndexed(mpGraphicsState.get(), mpVars.get(), mpModel->getIndices().size(), 0, 0);
+        if (mReadyToDraw)
+            pRenderContext->drawIndexed(mpGraphicsState.get(), mpVars.get(), mpModel->getIndices().size(), 0, 0);
     }
 
     void ModelLoader::onResize(uint32_t width, uint32_t height)
@@ -83,49 +81,51 @@ namespace Falcor::Tutorial
 
     void ModelLoader::onGuiRender(Gui* pGui)
     {
-        // TODO: switch between loading methods (my loading vs. built in)
-        // TODO: CullMode mode, FillMode
+        Gui::Window window(pGui, "Settings", {375, 275}, {5, 5});
+
+        static const Gui::DropdownList cullModeList = {
+            {static_cast<uint32_t>(RasterizerState::CullMode::Front), "Front"},
+            {static_cast<uint32_t>(RasterizerState::CullMode::Back), "Back"},
+            {static_cast<uint32_t>(RasterizerState::CullMode::None), "None"}
+        };
+
+        if (window.dropdown("Cull mode", cullModeList, reinterpret_cast<uint32_t&>(mSettings.cullMode)))
+            applyRasterStateSettings();
+
+        static const Gui::DropdownList fillModeList = {
+            {static_cast<uint32_t>(RasterizerState::FillMode::Solid), "Solid"},
+            {static_cast<uint32_t>(RasterizerState::FillMode::Wireframe), "Wireframe"}
+        };
+
+        if (window.dropdown("Fill mode", fillModeList, reinterpret_cast<uint32_t&>(mSettings.fillMode)))
+            applyRasterStateSettings();
+
+        if (window.button("Use custom model loader (only works for .obj files)"))
+        {
+            mSettings.useCustomLoader = !mSettings.useCustomLoader;
+        }
+
+        if (window.button("Show fps"))
+        {
+            mSettings.showFPS = !mSettings.showFPS;
+        }
+
     }
 
     void ModelLoader::loadModel(const std::filesystem::path& path)
     {
+        mReadyToDraw = false;
         if (mSettings.useCustomLoader)
             loadModelFromObj(path);
         else
             loadModelFalcor(path);
 
-        Buffer::SharedPtr pIndexBuffer;
-        const ResourceBindFlags ibBindFlags = Resource::BindFlags::Index | ResourceBindFlags::ShaderResource | ResourceBindFlags::UnorderedAccess;
-        pIndexBuffer = Buffer::createStructured(
-            mpDevice.get(),
-            sizeof(uint32_t),
-            mpModel->getIndices().size(),
-            ibBindFlags,
-            Buffer::CpuAccess::None,
-            mpModel->getIndices().data()
-        );
-
-        const ResourceBindFlags vbBindFlags = Resource::BindFlags::Vertex | ResourceBindFlags::ShaderResource | ResourceBindFlags::UnorderedAccess;
-        Buffer::SharedPtr pVertexBuffer = Buffer::createStructured(
-            mpDevice.get(),
-            sizeof(TriangleMesh::Vertex),
-            mpModel->getVertices().size(),
-            vbBindFlags,
-            Buffer::CpuAccess::None,
-            mpModel->getVertices().data()
-        );
-
-        const VertexLayout::SharedPtr pLayout = VertexLayout::create();
-        const VertexBufferLayout::SharedPtr pBufLayout = VertexBufferLayout::create();
-        pBufLayout->addElement("POSOBJ", offsetof(TriangleMesh::Vertex, position), ResourceFormat::RG32Float, 1, 0);
-        pBufLayout->addElement("TEXCOORD", offsetof(TriangleMesh::Vertex, texCoord), ResourceFormat::RG32Float, 1, 1);
-        pBufLayout->addElement("NORMAL", offsetof(TriangleMesh::Vertex, normal), ResourceFormat::RG32Float, 1, 2);
-        pLayout->addBufferLayout(0, pBufLayout);
-
-        const Vao::BufferVec buffers{ pVertexBuffer };
-        Vao::SharedPtr pVao = Vao::create(Vao::Topology::TriangleStrip, pLayout, buffers, pIndexBuffer, ResourceFormat::R32Uint);
-
-        mpGraphicsState->setVao(pVao);
+        const Vao::SharedPtr pVao = createVao();
+        if (pVao != nullptr)
+        {
+            mReadyToDraw = true;
+            mpGraphicsState->setVao(pVao);
+        }
     }
 
     void ModelLoader::loadModelFalcor(const std::filesystem::path& path)
@@ -137,7 +137,6 @@ namespace Falcor::Tutorial
     {
         if (path.extension().string() != ".obj")
             throw std::exception("Unsupported file type.");
-
 
         TriangleMesh::VertexList vertices;
         TriangleMesh::IndexList  indices;
@@ -181,25 +180,96 @@ namespace Falcor::Tutorial
                 ss >> v.position.x >> v.position.y >> v.position.z;
                 vertices.push_back(v);
             }
+            else if (inType == "vt")
+            {
+                ss >> v.texCoord.x >> v.texCoord.y;
+                vertices.push_back(v);
+            }
+            else if (inType == "vn")
+            {
+                ss >> v.normal.x >> v.normal.y >> v.normal.z;
+                vertices.push_back(v);
+            }
             else if (inType == "f")
             {
                 std::string vertexIndices;
 
                 while (std::getline(ss, vertexIndices, ' '))
                 {
-                    std::string vertexPositionIndex;
-                    while (std::getline(ss, vertexPositionIndex, '/'))
-                    {
-                        // .obj files index from 1, not from the usual 0
-                        indices.push_back(std::stoi(vertexPositionIndex) - 1);
-                        // not using textures, or normals
-                        break;
-                    }
+                    if (vertexIndices.empty())
+                        continue;
+
+                    std::istringstream indexSS(vertexIndices);
+                    std::string token;
+
+                    // position index
+                    std::getline(indexSS, token, '/');
+                    indices.push_back(std::stoi(token) - 1);
+
+                    // texCoord index
+                    std::getline(indexSS, token, '/');
+                    indices.push_back(std::stoi(token) - 1);
+
+                    // normal index
+                    std::getline(indexSS, token, '/');
+                    indices.push_back(std::stoi(token) - 1);
                 }
             }
         }
 
+        // TODO: create faces from indices and vertices
+
         mpModel = TriangleMesh::create(vertices, indices);
+    }
+
+    void ModelLoader::applyRasterStateSettings() const
+    {
+        if (mpGraphicsState == nullptr)
+            return;
+
+        RasterizerState::Desc rsDesc;
+        rsDesc.setCullMode(mSettings.cullMode);
+        rsDesc.setFillMode(mSettings.fillMode);
+        mpGraphicsState->setRasterizerState(RasterizerState::create(rsDesc));
+    }
+
+    Vao::SharedPtr ModelLoader::createVao() const
+    {
+        if (mpModel == nullptr)
+            return nullptr;
+
+        if (mpModel->getVertices().empty() || mpModel->getIndices().empty())
+            return nullptr;
+
+        const ResourceBindFlags ibBindFlags = Resource::BindFlags::Index | ResourceBindFlags::ShaderResource | ResourceBindFlags::UnorderedAccess;
+        const Buffer::SharedPtr pIndexBuffer = Buffer::createStructured(
+            mpDevice.get(),
+            sizeof(uint32_t),
+            mpModel->getIndices().size(),
+            ibBindFlags, Buffer::CpuAccess::None,
+            mpModel->getIndices().data()
+        );
+
+        const ResourceBindFlags vbBindFlags = Resource::BindFlags::Vertex | ResourceBindFlags::ShaderResource | ResourceBindFlags::UnorderedAccess;
+        const Buffer::SharedPtr pVertexBuffer = Buffer::createStructured(
+            mpDevice.get(),
+            sizeof(TriangleMesh::Vertex),
+            mpModel->getVertices().size(),
+            vbBindFlags, Buffer::CpuAccess::None,
+            mpModel->getVertices().data()
+        );
+
+        const VertexLayout::SharedPtr pLayout = VertexLayout::create();
+        const VertexBufferLayout::SharedPtr pBufLayout = VertexBufferLayout::create();
+        pBufLayout->addElement("POSOBJ", offsetof(TriangleMesh::Vertex, position), ResourceFormat::RGB32Float, 1, 0);
+        pBufLayout->addElement("NORMAL", offsetof(TriangleMesh::Vertex, normal), ResourceFormat::RGB32Float, 1, 1);
+        pBufLayout->addElement("TEXCOORD", offsetof(TriangleMesh::Vertex, texCoord), ResourceFormat::RG32Float, 1, 2);
+        pLayout->addBufferLayout(0, pBufLayout);
+
+        const Vao::BufferVec buffers{ pVertexBuffer };
+        Vao::SharedPtr pVao = Vao::create(Vao::Topology::TriangleList, pLayout, buffers, pIndexBuffer, ResourceFormat::R32Uint);
+
+        return pVao;
     }
 }
 

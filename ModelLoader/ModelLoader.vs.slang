@@ -22,6 +22,6 @@ VSOut main(in VSIn input)
     VSOut output;
     float4x4 mvp = mul(viewProjection, model);
     output.pos = mul(mvp, float4(input.objSpacePos, 1));
-    output.color = float4(input.objSpacePos, 1);
+    output.color = float4(input.normal, 1);
     return output;
 }

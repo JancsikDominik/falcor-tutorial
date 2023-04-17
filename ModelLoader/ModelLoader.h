@@ -3,7 +3,6 @@
 // from falcor
 #include "Falcor.h"
 #include "Core/SampleApp.h"
-#include "RenderGraph/BasePasses/FullScreenPass.h"
 #include "Scene/TriangleMesh.h"
 
 namespace Falcor::Tutorial
@@ -14,7 +13,9 @@ namespace Falcor::Tutorial
         struct ModelLoaderSettings
         {
             bool showFPS = true;
-            bool useCustomLoader = false;
+            bool useCustomLoader = true;
+            RasterizerState::FillMode fillMode = RasterizerState::FillMode::Solid;
+            RasterizerState::CullMode cullMode = RasterizerState::CullMode::Back;
         };
 
         explicit ModelLoader(const SampleAppConfig& config);
@@ -32,6 +33,8 @@ namespace Falcor::Tutorial
         void loadModel(const std::filesystem::path& path);
         void loadModelFalcor(const std::filesystem::path& path);
         void loadModelFromObj(const std::filesystem::path& path);
+        void applyRasterStateSettings() const;
+        Vao::SharedPtr createVao() const;
 
         Camera::SharedPtr mpCamera;
         FirstPersonCameraControllerCommon<false>::SharedPtr mpCameraController;
@@ -42,5 +45,7 @@ namespace Falcor::Tutorial
         GraphicsVars::SharedPtr mpVars;
         std::shared_ptr<Device> mpDevice;
         GraphicsProgram::SharedPtr mpProgram;
+
+        bool mReadyToDraw = false;
     };
 }

@@ -3,7 +3,7 @@ add_falcor_executable(ModelLoader)
 target_sources(ModelLoader PRIVATE
     ModelLoader.cpp
     ModelLoader.h
-    ModelLoader.ps.slang
+    ModelLoader.vs.slang
     ModelLoader.vs.slang
 )
 
