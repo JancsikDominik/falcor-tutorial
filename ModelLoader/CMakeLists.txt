@@ -4,7 +4,7 @@ target_sources(ModelLoader PRIVATE
     ModelLoader.cpp
     ModelLoader.h
     ModelLoader.vs.slang
-    ModelLoader.vs.slang
+    ModelLoader.ps.slang
 )
 
 target_copy_shaders(ModelLoader Samples/ModelLoader)

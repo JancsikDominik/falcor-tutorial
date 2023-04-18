@@ -6,15 +6,16 @@ cbuffer VSCBuffer
 
 struct VSOut
 {
-    float4 pos : SV_Position;
-    float4 color : COLOR;
+    float4 pos : SV_POSITION;
+    float3 normal : NORMAL;
+    float2 texCoord : TEXCOORD;
 };
 
 struct VSIn
 {
     float3 objSpacePos : POSOBJ;
-    float3 texCoord : TEXCOORD;
     float3 normal : NORMAL;
+    float2 texCoord : TEXCOORD;
 };
 
 VSOut main(in VSIn input)
@@ -22,6 +23,7 @@ VSOut main(in VSIn input)
     VSOut output;
     float4x4 mvp = mul(viewProjection, model);
     output.pos = mul(mvp, float4(input.objSpacePos, 1));
-    output.color = float4(input.normal, 1);
+    output.normal = mul(model, float4(input.normal, 1)).xyz;
+    output.texCoord = input.texCoord;
     return output;
 }

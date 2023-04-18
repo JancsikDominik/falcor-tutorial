@@ -40,15 +40,27 @@ namespace Falcor::Tutorial
     void ModelLoader::onLoad(RenderContext* pRenderContext)
     {
         // TODO: move load model to ui
-        loadModel("C:/Users/Jancsik/Documents/cube.obj");
+        loadModel("C:/Users/Jancsik/Documents/suzanne.obj");
     }
 
     void ModelLoader::onFrameRender(RenderContext* pRenderContext, const Fbo::SharedPtr& pTargetFbo)
     {
         mpCameraController->update();
         pRenderContext->clearFbo(pTargetFbo.get(), {0, 0.25, 0, 1}, 1.0f, 0, FboAttachmentType::All);
+
+        // vertex shader cbuffer variables
         mpVars["VSCBuffer"]["model"] = float4x4(1); // identity matrix
         mpVars["VSCBuffer"]["viewProjection"] = mpCamera->getViewProjMatrix();
+
+        // pixel shader cbuffer variables
+        mpVars["PSCBuffer"]["lightAmbient"] = float3(1, 1, 1);
+        mpVars["PSCBuffer"]["lightDiffuse"] = float3(1, 1, 1);
+        mpVars["PSCBuffer"]["lightSpecular"] = float3(1, 1, 1);
+        mpVars["PSCBuffer"]["lightDir"] = float3(0, -1, 0);
+        mpVars["PSCBuffer"]["materialAmbient"] = float3(.2f, .2f, .2f);
+        mpVars["PSCBuffer"]["materialDiffuse"] = float3(.1f, .1f, .1f);
+        mpVars["PSCBuffer"]["materialSpecular"] = float3(.1f, .3f, 1.f);
+        mpVars["PSCBuffer"]["cameraPosition"] = mpCamera->getPosition();
 
         mpGraphicsState->setFbo(pTargetFbo);
 

@@ -13,7 +13,7 @@ namespace Falcor::Tutorial
         struct ModelLoaderSettings
         {
             bool showFPS = true;
-            bool useCustomLoader = true;
+            bool useCustomLoader = false;
             RasterizerState::FillMode fillMode = RasterizerState::FillMode::Solid;
             RasterizerState::CullMode cullMode = RasterizerState::CullMode::Back;
         };
