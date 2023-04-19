@@ -3,6 +3,6 @@
 3.	Parametric surfaces on the cpu and on the gpu, perlin noise in compute shader
 4.  Transparency, blending (particles?)
 5.  Mesh shaders, low poly rendering, rendering normal vectors
-?.  Normal mapping, post-processing (depth of field or outline on objects), mirror with render-to-texture using FBO, deferred vs. forward rendering
+6.  Normal mapping, post-processing (depth of field or outline on objects), mirror with render-to-texture using FBO, deferred vs. forward rendering
 
 TODO: 2, 3, 4, 5, 6, 7, translate documentation to english and upload it
