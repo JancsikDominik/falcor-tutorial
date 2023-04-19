@@ -10,20 +10,23 @@ namespace Falcor::Tutorial
     class ModelLoader final : public SampleApp
     {
     public:
-        struct PointLightProperties
+        struct DirectionalLightProperties
         {
-            float3 ambient;
-            float3 diffuse;
-            float3 specular;
+            float3 ambient = {0.2f, 0.3f, 0.5f};
+            float3 diffuse = {0.2f, 0.3f, 0.5f};
+            float3 specular = {0.2f, 0.3f, 0.5f};
 
-            float3 lightDir;
+            float3 lightDir = {0.2f, -0.3f, 0.5f};
         };
 
-        struct MaterialProperties
+        struct ModelProperties
         {
-            float3 ambient;
-            float3 diffuse;
-            float3 specular;
+            float3 ambient = {0.2f, 0.3f, 0.5f};
+            float3 diffuse = {0.2f, 0.3f, 0.5f};
+            float3 specular = {0.2f, 0.3f, 0.5f};
+
+            float4x4 modelMatrix = float4x4(1);
+            float3 modelPos = float3(0, 0, 0);
         };
 
         struct ModelLoaderSettings
@@ -32,8 +35,8 @@ namespace Falcor::Tutorial
             bool useCustomLoader = true;
             RasterizerState::FillMode fillMode = RasterizerState::FillMode::Solid;
             RasterizerState::CullMode cullMode = RasterizerState::CullMode::Back;
-            PointLightProperties lightSettings;
-            MaterialProperties materialSettings;
+            DirectionalLightProperties lightSettings;
+            ModelProperties modelSettings;
         };
 
         explicit ModelLoader(const SampleAppConfig& config);
@@ -49,6 +52,7 @@ namespace Falcor::Tutorial
     private:
         // mesh loading
         void loadModel();
+        void loadTexture();
         void loadModelFalcor(const std::filesystem::path& path);
         void loadModelFromObj(const std::filesystem::path& path);
 

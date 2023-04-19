@@ -25,6 +25,8 @@ cbuffer PSCBuffer
     // textures
     Texture2D objTexture;
     SamplerState texSampler;
+
+    bool isTextureLoaded;
 };
 
 float4 main(PSIn input) : SV_TARGET
@@ -44,6 +46,9 @@ float4 main(PSIn input) : SV_TARGET
     float si = pow(clamp(dot(e, r), 0.0f, 1.0f), 20);
     float3 specular = lightSpecular * materialSpecular * si;
     
-    return float4(ambient + diffuse + specular, 1) * objTexture.Sample(texSampler, input.texCoord);
+    if (isTextureLoaded)
+        return float4(ambient + diffuse + specular, 1) * objTexture.Sample(texSampler, input.texCoord);
+    else
+        return float4(ambient + diffuse + specular, 1);
 
 }

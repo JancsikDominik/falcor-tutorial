@@ -39,7 +39,7 @@ namespace Falcor::Tutorial
 
     void ModelLoader::onLoad(RenderContext* pRenderContext)
     {
-        mpTexture = Texture::createFromFile(mpDevice.get(), "C:/Users/Jancsik/Documents/texture.jpg", true, false);
+        
     }
 
     void ModelLoader::onFrameRender(RenderContext* pRenderContext, const Fbo::SharedPtr& pTargetFbo)
@@ -48,21 +48,24 @@ namespace Falcor::Tutorial
         pRenderContext->clearFbo(pTargetFbo.get(), {0, 0.25, 0, 1}, 1.0f, 0, FboAttachmentType::All);
 
         // vertex shader cbuffer variables
-        mpVars["VSCBuffer"]["model"] = float4x4(1); // identity matrix
+        mpVars["VSCBuffer"]["model"] = mSettings.modelSettings.modelMatrix; 
         mpVars["VSCBuffer"]["viewProjection"] = mpCamera->getViewProjMatrix();
-
 
         // pixel shader cbuffer variables
         mpVars["PSCBuffer"]["lightAmbient"] = mSettings.lightSettings.ambient;
         mpVars["PSCBuffer"]["lightDiffuse"] = mSettings.lightSettings.diffuse;
         mpVars["PSCBuffer"]["lightSpecular"] = mSettings.lightSettings.specular;
         mpVars["PSCBuffer"]["lightDir"] = mSettings.lightSettings.lightDir;
-        mpVars["PSCBuffer"]["materialAmbient"] = mSettings.materialSettings.ambient;
-        mpVars["PSCBuffer"]["materialDiffuse"] = mSettings.materialSettings.diffuse;
-        mpVars["PSCBuffer"]["materialSpecular"] = mSettings.materialSettings.specular;
+        mpVars["PSCBuffer"]["materialAmbient"] = mSettings.modelSettings.ambient;
+        mpVars["PSCBuffer"]["materialDiffuse"] = mSettings.modelSettings.diffuse;
+        mpVars["PSCBuffer"]["materialSpecular"] = mSettings.modelSettings.specular;
         mpVars["PSCBuffer"]["cameraPosition"] = mpCamera->getPosition();
-        mpVars["PSCBuffer"]["objTexture"] = mpTexture;
-        mpVars["PSCBuffer"]["texSampler"] = mpTextureSampler;
+        mpVars["PSCBuffer"]["isTextureLoaded"] = mpTexture != nullptr;
+        if (mpTexture != nullptr)
+        {
+            mpVars["PSCBuffer"]["objTexture"] = mpTexture;
+            mpVars["PSCBuffer"]["texSampler"] = mpTextureSampler;
+        }
 
         mpGraphicsState->setFbo(pTargetFbo);
 
@@ -119,14 +122,15 @@ namespace Falcor::Tutorial
             applyRasterStateSettings();
 
         if (window.button("Load model"))
-        {
             loadModel();
-        }
+
+        if (window.button("Load texture"))
+            loadTexture();
 
         window.checkbox("Use custom model loader", mSettings.useCustomLoader);
         window.checkbox("Show fps", mSettings.showFPS);
 
-        if (auto lightGroup = window.group("Point light settings"))
+        if (auto lightGroup = window.group("Directional light settings"))
         {
             window.rgbColor("light ambient", mSettings.lightSettings.ambient);
             window.rgbColor("light diffuse", mSettings.lightSettings.diffuse);
@@ -134,11 +138,16 @@ namespace Falcor::Tutorial
             window.var("light direction", mSettings.lightSettings.lightDir);
         }
 
-        if (auto lightGroup = window.group("Model settings"))
+        if (auto modelGroup = window.group("Model settings"))
         {
-            window.rgbColor("material ambient", mSettings.materialSettings.ambient);
-            window.rgbColor("material diffuse", mSettings.materialSettings.diffuse);
-            window.rgbColor("material specular", mSettings.materialSettings.specular);
+            window.rgbColor("material ambient", mSettings.modelSettings.ambient);
+            window.rgbColor("material diffuse", mSettings.modelSettings.diffuse);
+            window.rgbColor("material specular", mSettings.modelSettings.specular);
+
+            if (window.var("model position", mSettings.modelSettings.modelPos))
+            {
+                mSettings.modelSettings.modelMatrix = rmcv::translate(mSettings.modelSettings.modelPos);
+            }
         }
 
     }
@@ -162,6 +171,15 @@ namespace Falcor::Tutorial
             mReadyToDraw = true;
             mpGraphicsState->setVao(pVao);
             mFrameRate.reset();
+        }
+    }
+
+    void ModelLoader::loadTexture()
+    {
+        std::filesystem::path path;
+        if (openFileDialog({{"png", ""}, {"jpg", ""}}, path))
+        {
+            mpTexture = Texture::createFromFile(mpDevice.get(), path, true, false);
         }
     }
 
