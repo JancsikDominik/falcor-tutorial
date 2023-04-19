@@ -1,9 +1,7 @@
 #include "ModelLoader.h"
 
-// from Falcor
 #include "Utils/UI/TextRenderer.h"
-
-#include <fstream>
+#include "MeshLoader.h"
 
 
 namespace Falcor::Tutorial
@@ -52,14 +50,15 @@ namespace Falcor::Tutorial
         mpVars["VSCBuffer"]["model"] = float4x4(1); // identity matrix
         mpVars["VSCBuffer"]["viewProjection"] = mpCamera->getViewProjMatrix();
 
+        // TODO: make these changeable on the ui
         // pixel shader cbuffer variables
         mpVars["PSCBuffer"]["lightAmbient"] = float3(1, 1, 1);
         mpVars["PSCBuffer"]["lightDiffuse"] = float3(1, 1, 1);
         mpVars["PSCBuffer"]["lightSpecular"] = float3(1, 1, 1);
         mpVars["PSCBuffer"]["lightDir"] = float3(0, -1, 0);
-        mpVars["PSCBuffer"]["materialAmbient"] = float3(.2f, .2f, .2f);
-        mpVars["PSCBuffer"]["materialDiffuse"] = float3(.1f, .1f, .1f);
-        mpVars["PSCBuffer"]["materialSpecular"] = float3(.1f, .3f, 1.f);
+        mpVars["PSCBuffer"]["materialAmbient"] = float3(0.2f, 0.2f, 0.2f);
+        mpVars["PSCBuffer"]["materialDiffuse"] = float3(0.1f, 0.1f, 0.1f);
+        mpVars["PSCBuffer"]["materialSpecular"] = float3(0.1f, 0.3f, 1.f);
         mpVars["PSCBuffer"]["cameraPosition"] = mpCamera->getPosition();
 
         mpGraphicsState->setFbo(pTargetFbo);
@@ -147,91 +146,7 @@ namespace Falcor::Tutorial
 
     void ModelLoader::loadModelFromObj(const std::filesystem::path& path)
     {
-        if (path.extension().string() != ".obj")
-            throw std::exception("Unsupported file type.");
-
-        TriangleMesh::VertexList vertices;
-        TriangleMesh::IndexList  indices;
-
-        /*
-         * loading data from obj file manually:
-         * .obj file structure:
-         *   '#' is a comment, just like '//' in C++, so we can skip those lines
-         *   'v' is a vertex
-         *   'vt' is the texture coordinate of one vertex, we skip these lines for now, we aren't applying textures in this tutorial
-         *   'vn' is the normal of one vertex, we skip these lines for now, we aren't applying textures in this tutorial
-         *   'f' is a face
-         *   for f a/b/c d/e/f g/h/i :
-         *       a/b/c describes the first vertex of the triangle
-         *       d/e/f describes the second vertex of the triangle
-         *       g/h/i describes the third vertex of the triangle
-         *   for the first vertex:
-         *      'a' says which vertex to use.
-         *      'b' says which texture coordinate to use.
-         *      'c' says which normal to use.
-         *      'a', 'b' and 'c' are indexed from 1 not from 0 like in c++
-         */
-
-        std::string line;
-        std::ifstream inFile(path);
-
-        if (!inFile)
-            return;
-
-        while (std::getline(inFile, line))
-        {
-            TriangleMesh::Vertex v;
-
-            std::stringstream ss(line);
-            std::string inType;
-
-            ss >> inType;
-
-            if (inType == "v")
-            {
-                ss >> v.position.x >> v.position.y >> v.position.z;
-                vertices.push_back(v);
-            }
-            else if (inType == "vt")
-            {
-                ss >> v.texCoord.x >> v.texCoord.y;
-                vertices.push_back(v);
-            }
-            else if (inType == "vn")
-            {
-                ss >> v.normal.x >> v.normal.y >> v.normal.z;
-                vertices.push_back(v);
-            }
-            else if (inType == "f")
-            {
-                std::string vertexIndices;
-
-                while (std::getline(ss, vertexIndices, ' '))
-                {
-                    if (vertexIndices.empty())
-                        continue;
-
-                    std::istringstream indexSS(vertexIndices);
-                    std::string token;
-
-                    // position index
-                    std::getline(indexSS, token, '/');
-                    indices.push_back(std::stoi(token) - 1);
-
-                    // texCoord index
-                    std::getline(indexSS, token, '/');
-                    indices.push_back(std::stoi(token) - 1);
-
-                    // normal index
-                    std::getline(indexSS, token, '/');
-                    indices.push_back(std::stoi(token) - 1);
-                }
-            }
-        }
-
-        // TODO: create faces from indices and vertices
-
-        mpModel = TriangleMesh::create(vertices, indices);
+        mpModel = MeshLoader::loadMeshFromObjFile(path);
     }
 
     void ModelLoader::applyRasterStateSettings() const
