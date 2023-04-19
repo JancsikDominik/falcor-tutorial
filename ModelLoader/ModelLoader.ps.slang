@@ -2,6 +2,7 @@ struct PSIn
 {
     float4 pos : SV_POSITION;
     float3 normal : NORMAL;
+    float2 texCoord : TEXCOORD;
 };
 
 
@@ -20,16 +21,21 @@ cbuffer PSCBuffer
     float3 materialSpecular;
 
     float3 cameraPosition;
+
+    // textures
+    Texture2D objTexture;
+    SamplerState texSampler;
 };
 
-
 float4 main(PSIn input) : SV_TARGET
-{
+{   
     float3 ambient = lightAmbient * materialAmbient;
 
     // just to make sure its normalized
     float3 normal = normalize(input.normal);
-    float3 toLight = -lightDir;
+    float3 nLightDir = normalize(lightDir);
+    
+    float3 toLight = -nLightDir;
     float di = clamp(dot(toLight, normal), 0.0f, 1.0f);
     float3 diffuse = lightDiffuse * materialDiffuse * di;
 
@@ -38,5 +44,6 @@ float4 main(PSIn input) : SV_TARGET
     float si = pow(clamp(dot(e, r), 0.0f, 1.0f), 20);
     float3 specular = lightSpecular * materialSpecular * si;
     
-    return float4(ambient + diffuse + specular, 1);
+    return float4(ambient + diffuse + specular, 1) * objTexture.Sample(texSampler, input.texCoord);
+
 }

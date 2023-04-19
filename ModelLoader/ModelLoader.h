@@ -10,12 +10,30 @@ namespace Falcor::Tutorial
     class ModelLoader final : public SampleApp
     {
     public:
+        struct PointLightProperties
+        {
+            float3 ambient;
+            float3 diffuse;
+            float3 specular;
+
+            float3 lightDir;
+        };
+
+        struct MaterialProperties
+        {
+            float3 ambient;
+            float3 diffuse;
+            float3 specular;
+        };
+
         struct ModelLoaderSettings
         {
             bool showFPS = true;
             bool useCustomLoader = true;
             RasterizerState::FillMode fillMode = RasterizerState::FillMode::Solid;
             RasterizerState::CullMode cullMode = RasterizerState::CullMode::Back;
+            PointLightProperties lightSettings;
+            MaterialProperties materialSettings;
         };
 
         explicit ModelLoader(const SampleAppConfig& config);
@@ -30,9 +48,11 @@ namespace Falcor::Tutorial
 
     private:
         // mesh loading
-        void loadModel(const std::filesystem::path& path);
+        void loadModel();
         void loadModelFalcor(const std::filesystem::path& path);
         void loadModelFromObj(const std::filesystem::path& path);
+
+        // rendering
         Vao::SharedPtr createVao() const;
 
         // settings
@@ -41,12 +61,16 @@ namespace Falcor::Tutorial
         Camera::SharedPtr mpCamera;
         FirstPersonCameraControllerCommon<false>::SharedPtr mpCameraController;
         TriangleMesh::SharedPtr mpModel;
-        ModelLoaderSettings mSettings;
+        Texture::SharedPtr mpTexture;
+        Sampler::SharedPtr mpTextureSampler;
 
         GraphicsState::SharedPtr mpGraphicsState;
         GraphicsVars::SharedPtr mpVars;
         std::shared_ptr<Device> mpDevice;
         GraphicsProgram::SharedPtr mpProgram;
         bool mReadyToDraw = false;
+
+        FrameRate mFrameRate;
+        ModelLoaderSettings mSettings;
     };
 }

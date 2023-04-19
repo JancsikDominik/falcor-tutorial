@@ -45,8 +45,12 @@ namespace Falcor::Tutorial
     void MeshLoader::createFaces(ObjFileData& data)
     {
         std::vector<uint32_t> finalIndices;
+        uint32_t maxVertexIndex = 0;
         for (size_t i = 0; i < data.indices.size(); i += 3)
         {
+            if (data.indices[i] > maxVertexIndex)
+                maxVertexIndex = data.indices[i];
+
             finalIndices.push_back(data.indices[i]);
             data.vertices[data.indices[i]].texCoord = data.vertices[data.indices[i + 1] + data.vertexCount].texCoord;
             data.vertices[data.indices[i]].normal = data.vertices[data.indices[i + 2] + data.texCoordCount + data.vertexCount].normal;
@@ -100,15 +104,18 @@ namespace Falcor::Tutorial
 
                     // position index
                     std::getline(indexSS, token, '/');
-                    data.indices.push_back(std::stoi(token) - 1);
+                    if (!token.empty())
+                        data.indices.push_back(std::stoi(token) - 1);
 
                     // texCoord index
                     std::getline(indexSS, token, '/');
-                    data.indices.push_back(std::stoi(token) - 1);
+                    if (!token.empty())
+                        data.indices.push_back(std::stoi(token) - 1);
 
                     // normal index
                     std::getline(indexSS, token, '/');
-                    data.indices.push_back(std::stoi(token) - 1);
+                    if (!token.empty())
+                        data.indices.push_back(std::stoi(token) - 1);
                 }
             }
         }

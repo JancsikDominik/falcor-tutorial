@@ -33,12 +33,13 @@ namespace Falcor::Tutorial
         mpCamera->setDepthRange(0.1f, 1000.f);
 
         mpCameraController = FirstPersonCameraController::create(mpCamera);
+
+        mpTextureSampler = Sampler::create(mpDevice.get(), {});
     }
 
     void ModelLoader::onLoad(RenderContext* pRenderContext)
     {
-        // TODO: move load model to ui
-        loadModel("C:/Users/Jancsik/Documents/suzanne.obj");
+        mpTexture = Texture::createFromFile(mpDevice.get(), "C:/Users/Jancsik/Documents/texture.jpg", true, false);
     }
 
     void ModelLoader::onFrameRender(RenderContext* pRenderContext, const Fbo::SharedPtr& pTargetFbo)
@@ -50,21 +51,27 @@ namespace Falcor::Tutorial
         mpVars["VSCBuffer"]["model"] = float4x4(1); // identity matrix
         mpVars["VSCBuffer"]["viewProjection"] = mpCamera->getViewProjMatrix();
 
-        // TODO: make these changeable on the ui
+
         // pixel shader cbuffer variables
-        mpVars["PSCBuffer"]["lightAmbient"] = float3(1, 1, 1);
-        mpVars["PSCBuffer"]["lightDiffuse"] = float3(1, 1, 1);
-        mpVars["PSCBuffer"]["lightSpecular"] = float3(1, 1, 1);
-        mpVars["PSCBuffer"]["lightDir"] = float3(0, -1, 0);
-        mpVars["PSCBuffer"]["materialAmbient"] = float3(0.2f, 0.2f, 0.2f);
-        mpVars["PSCBuffer"]["materialDiffuse"] = float3(0.1f, 0.1f, 0.1f);
-        mpVars["PSCBuffer"]["materialSpecular"] = float3(0.1f, 0.3f, 1.f);
+        mpVars["PSCBuffer"]["lightAmbient"] = mSettings.lightSettings.ambient;
+        mpVars["PSCBuffer"]["lightDiffuse"] = mSettings.lightSettings.diffuse;
+        mpVars["PSCBuffer"]["lightSpecular"] = mSettings.lightSettings.specular;
+        mpVars["PSCBuffer"]["lightDir"] = mSettings.lightSettings.lightDir;
+        mpVars["PSCBuffer"]["materialAmbient"] = mSettings.materialSettings.ambient;
+        mpVars["PSCBuffer"]["materialDiffuse"] = mSettings.materialSettings.diffuse;
+        mpVars["PSCBuffer"]["materialSpecular"] = mSettings.materialSettings.specular;
         mpVars["PSCBuffer"]["cameraPosition"] = mpCamera->getPosition();
+        mpVars["PSCBuffer"]["objTexture"] = mpTexture;
+        mpVars["PSCBuffer"]["texSampler"] = mpTextureSampler;
 
         mpGraphicsState->setFbo(pTargetFbo);
 
         if (mReadyToDraw)
             pRenderContext->drawIndexed(mpGraphicsState.get(), mpVars.get(), mpModel->getIndices().size(), 0, 0);
+
+        mFrameRate.newFrame();
+        if (mSettings.showFPS)
+            TextRenderer::render(pRenderContext, mFrameRate.getMsg(), pTargetFbo, {10, 10});
     }
 
     void ModelLoader::onResize(uint32_t width, uint32_t height)
@@ -92,7 +99,7 @@ namespace Falcor::Tutorial
 
     void ModelLoader::onGuiRender(Gui* pGui)
     {
-        Gui::Window window(pGui, "Settings", {375, 275}, {5, 5});
+        Gui::Window window(pGui, "Settings", {375, 275}, {0, 30});
 
         static const Gui::DropdownList cullModeList = {
             {static_cast<uint32_t>(RasterizerState::CullMode::Front), "Front"},
@@ -111,31 +118,50 @@ namespace Falcor::Tutorial
         if (window.dropdown("Fill mode", fillModeList, reinterpret_cast<uint32_t&>(mSettings.fillMode)))
             applyRasterStateSettings();
 
-        if (window.button("Use custom model loader (only works for .obj files)"))
+        if (window.button("Load model"))
         {
-            mSettings.useCustomLoader = !mSettings.useCustomLoader;
+            loadModel();
         }
 
-        if (window.button("Show fps"))
+        window.checkbox("Use custom model loader", mSettings.useCustomLoader);
+        window.checkbox("Show fps", mSettings.showFPS);
+
+        if (auto lightGroup = window.group("Point light settings"))
         {
-            mSettings.showFPS = !mSettings.showFPS;
+            window.rgbColor("light ambient", mSettings.lightSettings.ambient);
+            window.rgbColor("light diffuse", mSettings.lightSettings.diffuse);
+            window.rgbColor("light specular", mSettings.lightSettings.specular);
+            window.var("light direction", mSettings.lightSettings.lightDir);
+        }
+
+        if (auto lightGroup = window.group("Model settings"))
+        {
+            window.rgbColor("material ambient", mSettings.materialSettings.ambient);
+            window.rgbColor("material diffuse", mSettings.materialSettings.diffuse);
+            window.rgbColor("material specular", mSettings.materialSettings.specular);
         }
 
     }
 
-    void ModelLoader::loadModel(const std::filesystem::path& path)
+    void ModelLoader::loadModel()
     {
         mReadyToDraw = false;
-        if (mSettings.useCustomLoader)
-            loadModelFromObj(path);
-        else
-            loadModelFalcor(path);
+        std::filesystem::path path;
+
+        if (openFileDialog({{"obj", "obj file"}}, path))
+        {
+            if (mSettings.useCustomLoader)
+                loadModelFromObj(path);
+            else
+                loadModelFalcor(path);
+        }
 
         const Vao::SharedPtr pVao = createVao();
         if (pVao != nullptr)
         {
             mReadyToDraw = true;
             mpGraphicsState->setVao(pVao);
+            mFrameRate.reset();
         }
     }
 
