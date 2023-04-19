@@ -5,4 +5,4 @@
 5.  Mesh shaders, low poly rendering, rendering normal vectors
 6.  Normal mapping, post-processing (depth of field or outline on objects), mirror with render-to-texture using FBO, deferred vs. forward rendering
 
-TODO: 2, 3, 4, 5, 6, 7, translate documentation to english and upload it
+TODO: 3, 4, 5, 6, 7, translate documentation to english and upload it
