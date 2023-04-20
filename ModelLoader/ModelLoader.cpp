@@ -48,7 +48,7 @@ namespace Falcor::Tutorial
         pRenderContext->clearFbo(pTargetFbo.get(), {0, 0.25, 0, 1}, 1.0f, 0, FboAttachmentType::All);
 
         // vertex shader cbuffer variables
-        mpVars["VSCBuffer"]["model"] = mSettings.modelSettings.modelMatrix; 
+        mpVars["VSCBuffer"]["model"] = mSettings.modelSettings.transform.getMatrix(); 
         mpVars["VSCBuffer"]["viewProjection"] = mpCamera->getViewProjMatrix();
 
         // pixel shader cbuffer variables
@@ -115,7 +115,7 @@ namespace Falcor::Tutorial
 
         static const Gui::DropdownList fillModeList = {
             {static_cast<uint32_t>(RasterizerState::FillMode::Solid), "Solid"},
-            {static_cast<uint32_t>(RasterizerState::FillMode::Wireframe), "Wireframe"}
+            {static_cast<uint32_t>(RasterizerState::FillMode::Wireframe), "Wire-frame"}
         };
 
         if (window.dropdown("Fill mode", fillModeList, reinterpret_cast<uint32_t&>(mSettings.fillMode)))
@@ -144,9 +144,20 @@ namespace Falcor::Tutorial
             window.rgbColor("material diffuse", mSettings.modelSettings.diffuse);
             window.rgbColor("material specular", mSettings.modelSettings.specular);
 
-            if (window.var("model position", mSettings.modelSettings.modelPos))
+            bool transformChanged = false;
+
+            if (window.var("model position", mSettings.modelSettings.position))
+                transformChanged = true;
+            if (window.var("model scale", mSettings.modelSettings.scale))
+                transformChanged = true;
+            if (window.var("model rotation (radiant)", mSettings.modelSettings.rotation))
+                transformChanged = true;
+
+            if (transformChanged)
             {
-                mSettings.modelSettings.modelMatrix = rmcv::translate(mSettings.modelSettings.modelPos);
+                mSettings.modelSettings.transform.setScaling(mSettings.modelSettings.scale);
+                mSettings.modelSettings.transform.setTranslation(mSettings.modelSettings.position);
+                mSettings.modelSettings.transform.setRotationEuler(mSettings.modelSettings.rotation);
             }
         }
 

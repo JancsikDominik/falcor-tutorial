@@ -25,8 +25,11 @@ namespace Falcor::Tutorial
             float3 diffuse = {0.2f, 0.3f, 0.5f};
             float3 specular = {0.2f, 0.3f, 0.5f};
 
-            float4x4 modelMatrix = float4x4(1);
-            float3 modelPos = float3(0, 0, 0);
+            Transform transform;
+
+            float3 position = float3(0, 0, 0);
+            float3 scale = float3(1, 1, 1);
+            float3 rotation = float3(0, 0, 0);
         };
 
         struct ModelLoaderSettings
