@@ -27,14 +27,14 @@ namespace Falcor::Tutorial
         dsDesc.setDepthEnabled(true);
         mpGraphicsState->setDepthStencilState(DepthStencilState::create(dsDesc));
 
+        mpTextureSampler = Sampler::create(mpDevice.get(), {});
+
         mpCamera = Camera::create("main camera");
         mpCamera->setPosition({6, 3, 3});
         mpCamera->setTarget({0, 0, 0});
         mpCamera->setDepthRange(0.1f, 1000.f);
 
         mpCameraController = FirstPersonCameraController::create(mpCamera);
-
-        mpTextureSampler = Sampler::create(mpDevice.get(), {});
     }
 
     void ModelLoader::onLoad(RenderContext* pRenderContext)
@@ -150,7 +150,7 @@ namespace Falcor::Tutorial
                 transformChanged = true;
             if (window.var("model scale", mSettings.modelSettings.scale))
                 transformChanged = true;
-            if (window.var("model rotation (radiant)", mSettings.modelSettings.rotation))
+            if (window.var("model rotation (radian)", mSettings.modelSettings.rotation))
                 transformChanged = true;
 
             if (transformChanged)

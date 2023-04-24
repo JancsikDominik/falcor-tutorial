@@ -69,8 +69,8 @@ namespace Falcor::Tutorial
         FirstPersonCameraControllerCommon<false>::SharedPtr mpCameraController;
         TriangleMesh::SharedPtr mpModel;
         Texture::SharedPtr mpTexture;
-        Sampler::SharedPtr mpTextureSampler;
 
+        Sampler::SharedPtr mpTextureSampler;
         GraphicsState::SharedPtr mpGraphicsState;
         GraphicsVars::SharedPtr mpVars;
         std::shared_ptr<Device> mpDevice;
