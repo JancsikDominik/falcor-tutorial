@@ -48,7 +48,7 @@ namespace Falcor::Tutorial
         pRenderContext->clearFbo(pTargetFbo.get(), {0, 0.25, 0, 1}, 1.0f, 0, FboAttachmentType::All);
 
         // vertex shader cbuffer variables
-        mpVars["VSCBuffer"]["model"] = mSettings.modelSettings.transform.getMatrix(); 
+        mpVars["VSCBuffer"]["modelMatrices"] = mSettings.modelSettings.transform.getMatrix(); 
         mpVars["VSCBuffer"]["viewProjection"] = mpCamera->getViewProjMatrix();
 
         // pixel shader cbuffer variables
@@ -228,7 +228,8 @@ namespace Falcor::Tutorial
             mpDevice.get(),
             sizeof(uint32_t),
             mpModel->getIndices().size(),
-            ibBindFlags, Buffer::CpuAccess::None,
+            ibBindFlags,
+            Buffer::CpuAccess::None,
             mpModel->getIndices().data()
         );
 
@@ -237,7 +238,8 @@ namespace Falcor::Tutorial
             mpDevice.get(),
             sizeof(TriangleMesh::Vertex),
             mpModel->getVertices().size(),
-            vbBindFlags, Buffer::CpuAccess::None,
+            vbBindFlags,
+            Buffer::CpuAccess::None,
             mpModel->getVertices().data()
         );
 
@@ -249,7 +251,12 @@ namespace Falcor::Tutorial
         pLayout->addBufferLayout(0, pBufLayout);
 
         const Vao::BufferVec buffers{ pVertexBuffer };
-        Vao::SharedPtr pVao = Vao::create(Vao::Topology::TriangleList, pLayout, buffers, pIndexBuffer, ResourceFormat::R32Uint);
+        Vao::SharedPtr pVao = Vao::create(Vao::Topology::TriangleList,
+            pLayout,
+            buffers,
+            pIndexBuffer,
+            ResourceFormat::R32Uint
+        );
 
         return pVao;
     }

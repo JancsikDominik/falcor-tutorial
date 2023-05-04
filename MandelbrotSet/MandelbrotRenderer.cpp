@@ -1,7 +1,18 @@
 #include "MandelbrotRenderer.h"
 
+#include <fstream>
+
 namespace Falcor::Tutorial
 {
+    void MandelbrotRenderer::dumpIterationCount() const
+    {
+        std::ofstream file("testresult.txt");
+
+        file << "It took " << mSettings.iterations << " iterations, to get below 60 FPS.";
+
+        file.close();
+    }
+
     void MandelbrotRenderer::onLoad(RenderContext* pRenderContext)
     {
         Program::Desc programDesc;
@@ -22,6 +33,22 @@ namespace Falcor::Tutorial
 
         // run final pass
         mpMainPass->execute(pRenderContext, pTargetFbo);
+
+        mFrameRate.newFrame();
+
+        if (mSettings.isStressTesting)
+        {
+            // 0.033 to render a frame ~ 30 FPS
+            if (mFrameRate.getAverageFrameTime() < 0.033)
+            {
+                mSettings.iterations += 100;
+            }
+            else
+            {
+                dumpIterationCount();
+                mSettings.isStressTesting = false;
+            }
+        }
     }
 
     void MandelbrotRenderer::onResize(uint32_t width, uint32_t height)
@@ -31,6 +58,9 @@ namespace Falcor::Tutorial
 
     bool MandelbrotRenderer::onKeyEvent(const KeyboardEvent& keyEvent)
     {
+        if (mSettings.isStressTesting)
+            return false;
+
         if (keyEvent.type == KeyboardEvent::Type::KeyPressed || keyEvent.type == KeyboardEvent::Type::KeyRepeated)
         {
             const float step = 1 / (mSettings.zoom * 3);
@@ -83,6 +113,9 @@ namespace Falcor::Tutorial
 
     bool MandelbrotRenderer::onMouseEvent(const MouseEvent& mouseEvent)
     {
+        if (mSettings.isStressTesting)
+            return false;
+
         // panning with mouse
         if (mouseEvent.type == MouseEvent::Type::ButtonDown || mouseEvent.type == MouseEvent::Type::ButtonUp)
         {
@@ -105,6 +138,10 @@ namespace Falcor::Tutorial
         {
             const float2& mouseBeforeZoom = NormalizedScreenPosToMandelbrotPos(mouseEvent.pos);
             mSettings.zoom += mouseEvent.wheelDelta.y * (mSettings.zoom / 5);
+
+            if (mSettings.zoom <= 0.1f)
+                mSettings.zoom = 0.1f;
+
             const float2& mouseAfterZoom = NormalizedScreenPosToMandelbrotPos(mouseEvent.pos);
             mSettings.positionOffset += mouseBeforeZoom - mouseAfterZoom;
 
@@ -122,7 +159,7 @@ namespace Falcor::Tutorial
         window.text("Zoom with scroll wheel.");
         window.text("Holding down a mouse button and moving the mouse will pan the image.");
         window.slider("Zoom level", mSettings.zoom, 0.33f, 70.f);
-        window.slider("Iterations", mSettings.iterations, 5, 2048);
+        window.slider("Iterations", mSettings.iterations, 1, 8192);
         window.slider("Position", mSettings.positionOffset, -3.0, 3.0);
 
         if (window.button("Reset settings"))
@@ -131,6 +168,18 @@ namespace Falcor::Tutorial
             float2 res = mSettings.resolution;
             mSettings = MandelbrotGUI();
             mSettings.resolution = res;
+        }
+
+        if (mSettings.isStressTesting)
+        {
+            window.text("Mouse and keyboard events are disabled during stress testing.");
+            if (window.button("Stop stress test"))
+                mSettings.isStressTesting = false;
+        }
+        else
+        {
+            if (window.button("Start stress test"))
+                mSettings.isStressTesting = true;
         }
     }
 

@@ -1,3 +1,5 @@
+#pragma once
+
 #include "Scene/TriangleMesh.h"
 
 namespace Falcor::Tutorial

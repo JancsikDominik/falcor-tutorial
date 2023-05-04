@@ -1,6 +1,6 @@
 add_falcor_executable(MandelbrotSet)
 
-target_sources(MandelbrotSet PRIVATE
+target_sources(MandelbrotSet PUBLIC
     MandelbrotRenderer.cpp
     MandelbrotRenderer.h
 	Mandelbrot.vs.slang

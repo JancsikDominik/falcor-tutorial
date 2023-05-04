@@ -11,15 +11,17 @@ namespace Falcor::Tutorial
         int     iterations = 256;
         float2  positionOffset{ 0, 0 };
         float2  resolution{ 0, 0 };
+        bool    isStressTesting = false;
     };
 
-    class MandelbrotRenderer final : public SampleApp
+    class MandelbrotRenderer : public SampleApp
     {
     public:
         MandelbrotRenderer(const SampleAppConfig& config) : SampleApp(config)
         {
         }
 
+        void dumpIterationCount() const;
         // SampleApp implementation
         void onLoad(RenderContext* pRenderContext) override;
         void onFrameRender(RenderContext* pRenderContext, const Fbo::SharedPtr& pTargetFbo) override;
@@ -32,10 +34,12 @@ namespace Falcor::Tutorial
         // own functions
         float2 NormalizedScreenPosToMandelbrotPos(const float2& pos) const;
 
-    private:
+    protected:
         FullScreenPass::SharedPtr mpMainPass;
         MandelbrotGUI mSettings;
         bool mIsMouseButtonDown = false;
         float2 mPrevMousePos{ 0, 0 };
+
+        FrameRate mFrameRate;
     };
 }
