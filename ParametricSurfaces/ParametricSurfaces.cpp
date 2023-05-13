@@ -1,6 +1,7 @@
 #include "ParametricSurfaces.h"
 
 #include "Utils/UI/TextRenderer.h"
+#include <random>
 
 namespace Falcor::Tutorial
 {
@@ -31,6 +32,7 @@ namespace Falcor::Tutorial
         mpGraphicsState->setDepthStencilState(DepthStencilState::create(dsDesc));
 
         mpTextureSampler = Sampler::create(mpDevice.get(), {});
+        mpNoiseSampler = Sampler::create(mpDevice.get(), {});
 
         mpCamera = Camera::create("main camera");
         mpCamera->setPosition({6, 3, 3});
@@ -42,19 +44,6 @@ namespace Falcor::Tutorial
 
     void ParametircSurfaceRenderer::onLoad(RenderContext* pRenderContext)
     {
-        const auto& sphere = TriangleMesh::createSphere();
-        sphere->setName("sphere");
-        mpModels.push_back(sphere);
-        const auto& cube = TriangleMesh::createCube();
-        cube->setName("cube");
-        mpModels.push_back(cube);
-        const Vao::SharedPtr pVao = createVao();
-        if (pVao != nullptr)
-        {
-            mReadyToDraw = true;
-            mpGraphicsState->setVao(pVao);
-            mFrameRate.reset();
-        }
     }
 
     void ParametircSurfaceRenderer::onFrameRender(RenderContext* pRenderContext, const Fbo::SharedPtr& pTargetFbo)
@@ -62,7 +51,6 @@ namespace Falcor::Tutorial
         mpCameraController->update();
         pRenderContext->clearFbo(pTargetFbo.get(), {0.1, 0.1, 0.1, 1}, 1.0f, 0, FboAttachmentType::All);
 
-        // vertex shader cbuffer variables
         for (int i = 0; i < mSettings.modelSettings.size(); i++)
         {
             mpGraphicsVars["VSCBuffer"]["settings"][i]["transform"] = mSettings.modelSettings[i].transform;
@@ -70,13 +58,26 @@ namespace Falcor::Tutorial
             mpGraphicsVars["VSCBuffer"]["settings"][i]["diffuse"] = mSettings.modelSettings[i].diffuse;
             mpGraphicsVars["VSCBuffer"]["settings"][i]["specular"] = mSettings.modelSettings[i].specular;
             mpGraphicsVars["VSCBuffer"]["settings"][i]["tex"] = mSettings.modelSettings[i].texture;
+            mpGraphicsVars["VSCBuffer"]["settings"][i]["hasPerlinNoise"] = mSettings.modelSettings[i].perlinNoise != nullptr;
+
+            if (mSettings.modelSettings[i].perlinNoise != nullptr)
+            {
+                mpGraphicsVars["VSCBuffer"]["settings"][i]["perlinNoise"] = mSettings.modelSettings[i].perlinNoise;
+                mpGraphicsVars["VSCBuffer"]["settings"][i]["noiseSampler"] = mpNoiseSampler;
+                mpGraphicsVars["VSCBuffer"]["settings"][i]["noiseIntensity"] = mSettings.modelSettings[i].noiseIntensity;
+            }
 
             mpGraphicsVars["PSCBuffer"]["modelSettings"][i]["transform"] = mSettings.modelSettings[i].transform;
             mpGraphicsVars["PSCBuffer"]["modelSettings"][i]["ambient"] = mSettings.modelSettings[i].ambient;
             mpGraphicsVars["PSCBuffer"]["modelSettings"][i]["diffuse"] = mSettings.modelSettings[i].diffuse;
             mpGraphicsVars["PSCBuffer"]["modelSettings"][i]["specular"] = mSettings.modelSettings[i].specular;
-            mpGraphicsVars["PSCBuffer"]["modelSettings"][i]["tex"] = mSettings.modelSettings[i].texture;
             mpGraphicsVars["PSCBuffer"]["modelSettings"][i]["hasTexture"] = mSettings.modelSettings[i].texture != nullptr;
+
+            if (mSettings.modelSettings[i].texture != nullptr)
+            {
+                mpGraphicsVars["PSCBuffer"]["modelSettings"][i]["tex"] = mSettings.modelSettings[i].texture;
+                mpGraphicsVars["PSCBuffer"]["texSampler"] = mpTextureSampler;
+            }
         }
         mpGraphicsVars["VSCBuffer"]["viewProjection"] = mpCamera->getViewProjMatrix();
 
@@ -87,11 +88,21 @@ namespace Falcor::Tutorial
         mpGraphicsVars["PSCBuffer"]["lightDir"] = mSettings.lightSettings.lightDir;
         mpGraphicsVars["PSCBuffer"]["cameraPosition"] = mpCamera->getPosition();
 
-        // mpComputeVars["CSCBuffer"]["res"] = mSettings.renderSettings.aspectRatio;
-        // mpComputeVars->setTexture("result", mSettings.modelSettings[0].texture);
-        // mpComputeProgram->dispatchCompute(pRenderContext, mpComputeVars.get(), float3(16, 16, 1));
-
         mpGraphicsState->setFbo(pTargetFbo);
+
+        if (mShouldGenerateNewNoise)
+        {
+            std::random_device rd;
+            std::mt19937 gen(rd());
+
+            mpComputeVars["CSCBuffer"]["res"] = 256.f;
+            mpComputeVars["CSCBuffer"]["seed"] = gen();
+            mpComputeVars->setTexture("result", mSettings.modelSettings[mNewNoiseIndex].perlinNoise);
+            mpComputeProgram->dispatchCompute(pRenderContext, mpComputeVars.get(), uint3(256 / 16, 256 / 16, 1));
+
+            mShouldGenerateNewNoise = false;
+            mNewNoiseIndex = -1;
+        }
 
         if (mReadyToDraw)
             pRenderContext->drawIndexed(mpGraphicsState.get(), mpGraphicsVars.get(), mpIndexBuffer->getElementCount(), 0, 0);
@@ -131,19 +142,27 @@ namespace Falcor::Tutorial
         static const Gui::DropdownList cullModeList = {
             {static_cast<uint32_t>(RasterizerState::CullMode::Front), "Front"},
             {static_cast<uint32_t>(RasterizerState::CullMode::Back), "Back"},
-            {static_cast<uint32_t>(RasterizerState::CullMode::None), "None"}};
+            {static_cast<uint32_t>(RasterizerState::CullMode::None), "None"}
+        };
 
         if (window.dropdown("Cull mode", cullModeList, reinterpret_cast<uint32_t&>(mSettings.renderSettings.cullMode)))
             applyRasterStateSettings();
 
         static const Gui::DropdownList fillModeList = {
             {static_cast<uint32_t>(RasterizerState::FillMode::Solid), "Solid"},
-            {static_cast<uint32_t>(RasterizerState::FillMode::Wireframe), "Wire-frame"}};
+            {static_cast<uint32_t>(RasterizerState::FillMode::Wireframe), "Wire-frame"}
+        };
 
         if (window.dropdown("Fill mode", fillModeList, reinterpret_cast<uint32_t&>(mSettings.renderSettings.fillMode)))
             applyRasterStateSettings();
 
         window.checkbox("Show fps", mSettings.renderSettings.showFPS);
+
+        if (window.button("Generate sphere"))
+            createSphere();
+
+        if (window.button("Generate plane"))
+            createPlane();
 
         if (auto lightGroup = window.group("Directional light settings"))
         {
@@ -153,13 +172,15 @@ namespace Falcor::Tutorial
             window.var("light direction", mSettings.lightSettings.lightDir);
         }
 
-        for (int i = 0; i < mSettings.modelSettings.size(); i++)
+        for (size_t i = 0; i < mSettings.modelSettings.size(); i++)
         {
             if (auto modelGroup = window.group(mpModels[i]->getName()))
             {
                 window.rgbColor((mpModels[i]->getName() + " ambient").c_str(), mSettings.modelSettings[i].ambient);
                 window.rgbColor((mpModels[i]->getName() + " diffuse").c_str(), mSettings.modelSettings[i].diffuse);
                 window.rgbColor((mpModels[i]->getName() + " specular").c_str(), mSettings.modelSettings[i].specular);
+
+                window.separator();
 
                 bool transformChanged = false;
 
@@ -169,6 +190,31 @@ namespace Falcor::Tutorial
                     transformChanged = true;
                 if (window.var((mpModels[i]->getName() + " rotation (radian)").c_str(), mSettings.modelSettings[i].rotation))
                     transformChanged = true;
+
+                window.separator();
+
+                window.var(("Noise intensity for " + mpModels[i]->getName()).c_str(), mSettings.modelSettings[i].noiseIntensity);
+
+                if (window.button(("Generate perlin noise for " + mpModels[i]->getName()).c_str()))
+                {
+                    mShouldGenerateNewNoise = true;
+                    mNewNoiseIndex = i;
+                    generatePerlinNoiseBuffer(i);
+                }
+
+                if (window.button(("Apply perlin noise as texture for " + mpModels[i]->getName()).c_str()))
+                {
+                    mSettings.modelSettings[i].texture = mSettings.modelSettings[i].perlinNoise;
+                }
+
+                if (window.button(("Upload texture for " + mpModels[i]->getName()).c_str()))
+                {
+                    std::filesystem::path path;
+                    if (openFileDialog({{"png", ""}, {"jpg", ""}}, path))
+                    {
+                        mSettings.modelSettings[i].texture = Texture::createFromFile(mpDevice.get(), path, true, false);
+                    }
+                }
 
                 if (transformChanged)
                 {
@@ -192,6 +238,8 @@ namespace Falcor::Tutorial
         if (!isEveryModelValid())
             return nullptr;
 
+        mReadyToDraw = false;
+
         // batching the models together, so we only need one draw call
         const Buffer::SharedPtr vertexBuffer = generateModelVertexBuffers();
         generateModelIndexBuffer();
@@ -205,8 +253,22 @@ namespace Falcor::Tutorial
         pLayout->addBufferLayout(0, pBufLayout);
 
         Vao::SharedPtr pVao = Vao::create(Vao::Topology::TriangleList, pLayout, {vertexBuffer}, mpIndexBuffer, ResourceFormat::R32Uint);
-
+        mReadyToDraw = true;
         return pVao;
+    }
+
+    void ParametircSurfaceRenderer::generatePerlinNoiseBuffer(const size_t modelIndex)
+    {
+        mSettings.modelSettings[modelIndex].perlinNoise = Texture::create2D(
+            mpDevice.get(),
+            256,
+            256,
+            ResourceFormat::RGBA16Float,
+            1,
+            Resource::kMaxPossible,
+            nullptr,
+            Resource::BindFlags::ShaderResource | Resource::BindFlags::RenderTarget | Resource::BindFlags::UnorderedAccess
+        );
     }
 
     void ParametircSurfaceRenderer::applyRasterStateSettings() const
@@ -244,6 +306,7 @@ namespace Falcor::Tutorial
         const ResourceBindFlags bindFlags = Resource::BindFlags::Vertex | ResourceBindFlags::ShaderResource | ResourceBindFlags::UnorderedAccess;
         Buffer::SharedPtr joinedBuffer;
 
+        const auto originalSettings = mSettings.modelSettings;
         mSettings.modelSettings.clear();
 
         std::vector<Vertex> vertexDataWithModelIndex;
@@ -259,10 +322,11 @@ namespace Falcor::Tutorial
                 vertexDataWithModelIndex.push_back(v);
             }
 
-            mSettings.modelSettings.emplace_back(ModelSettings());
+            if (i < originalSettings.size())
+                mSettings.modelSettings.push_back(originalSettings[i]);
+            else
+                mSettings.modelSettings.emplace_back(ModelSettings());
         }
-        mSettings.modelSettings[0].texture = Texture::createFromFile(mpDevice.get(), "C:/Users/Jancsik/Documents/texture.jpg", true, false);
-        mSettings.modelSettings[1].texture = Texture::createFromFile(mpDevice.get(), "C:/Users/Jancsik/Documents/download.jpg", true, false);
 
         const Buffer::SharedPtr pBuffer = Buffer::createStructured(
             mpDevice.get(),
@@ -301,6 +365,70 @@ namespace Falcor::Tutorial
             joinedIndices.data()
         );
     }
+
+    void ParametircSurfaceRenderer::createPlane()
+    {
+        const auto& plane = TriangleMesh::create();
+        plane->setName("plane" + std::to_string(objCount[Plane]));
+        mpModels.push_back(plane);
+        objCount[Plane]++;
+
+        const auto& res = mSettings.renderSettings.parametricSurfaceResolution;
+        const float3& normal = { 0, 1, 0 };
+
+        for (size_t i = 0; i < res - 1; i++)
+        {
+            for (size_t j = 0; j < res - 1; j++)
+            {
+                const float x = static_cast<float>(j);
+                const float z = static_cast<float>(i);
+
+                // first vertex of the quad
+                float3 pos1 = {x, 0, z};
+                const uint32_t vertex1Index = plane->addVertex(pos1, normal, {x / res, z / res});
+
+                // second vertex of the quad
+                float3 pos2 = {x, 0, z + 1};
+                const uint32_t vertex2Index = plane->addVertex(pos2, normal, {x / res, (z + 1) / res});
+
+                // third vertex of the quad
+                float3 pos3 = {x + 1, 0, z + 1};
+                const uint32_t vertex3Index = plane->addVertex(pos3, normal, {(x + 1) / res, (z + 1) / res});
+
+                // fourth vertex of the quad
+                float3 pos4 = {x + 1, 0, z};
+                const uint32_t vertex4Index = plane->addVertex(pos4, normal, {(x + 1) / res, z / res});
+
+                plane->addTriangle(vertex1Index, vertex2Index, vertex3Index);
+                plane->addTriangle(vertex4Index, vertex1Index, vertex3Index);
+            }
+        }
+
+        const Vao::SharedPtr pVao = createVao();
+        if (pVao != nullptr)
+        {
+            mReadyToDraw = true;
+            mpGraphicsState->setVao(pVao);
+            mFrameRate.reset();
+        }
+    }
+
+    void ParametircSurfaceRenderer::createSphere()
+    {
+        const auto& cube = TriangleMesh::createSphere();
+        cube->setName("sphere" + std::to_string(objCount[Sphere]));
+        mpModels.push_back(cube);
+        objCount[Sphere]++;
+
+        const Vao::SharedPtr pVao = createVao();
+        if (pVao != nullptr)
+        {
+            mReadyToDraw = true;
+            mpGraphicsState->setVao(pVao);
+            mFrameRate.reset();
+        }
+    }
+
 }
 
 int main()

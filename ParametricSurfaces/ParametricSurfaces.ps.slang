@@ -15,7 +15,7 @@ struct PSIn
     float4 pos : SV_POSITION;
     float3 normal : NORMAL;
     float2 texCoord : TEXCOORD;
-    uint modelIndex : SV_RenderTargetArrayIndex;
+    uint modelIndex : MODELINDEX;
 };
 
 cbuffer PSCBuffer
@@ -30,8 +30,6 @@ cbuffer PSCBuffer
 
     ModelSettings modelSettings[32];
 
-    // textures
-    Texture2D objTexture[32];
     SamplerState texSampler;
 };
 
