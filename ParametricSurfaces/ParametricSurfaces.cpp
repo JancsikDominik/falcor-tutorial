@@ -328,7 +328,7 @@ namespace Falcor::Tutorial
                 mSettings.modelSettings.emplace_back(ModelSettings());
         }
 
-        const Buffer::SharedPtr pBuffer = Buffer::createStructured(
+        Buffer::SharedPtr pBuffer = Buffer::createStructured(
             mpDevice.get(),
             sizeof(Vertex),
             vertexDataWithModelIndex.size(),
@@ -336,6 +336,7 @@ namespace Falcor::Tutorial
             Buffer::CpuAccess::None,
             vertexDataWithModelIndex.data()
         );
+
         return pBuffer;
     }
 
