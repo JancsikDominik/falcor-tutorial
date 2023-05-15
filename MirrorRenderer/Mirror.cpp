@@ -3,7 +3,7 @@
 namespace Falcor::Tutorial
 {
 
-    Object::Object(TriangleMesh::SharedPtr mesh, Device* device, std::string_view name)
+    Object::Object(TriangleMesh::SharedPtr mesh, Device* device, const std::string_view name)
         : mpMesh {std::move(mesh)}, mpTexture {nullptr}, mpVao {nullptr}, mName {name}, mpDevice {device}
     {
         if (!createVao())
@@ -130,4 +130,28 @@ namespace Falcor::Tutorial
         return true;
     }
 
+    RenderToTextureMirror::RenderToTextureMirror(const float2& size, Device* device, const std::string_view name)
+        : Object(TriangleMesh::createQuad(size), device, name), mpCamera(Camera::create("mirror camera"))
+    {
+        Fbo::Desc fboDesc;
+        fboDesc.setColorTarget(0, ResourceFormat::RGBA32Float);
+        mpFbo = Fbo::create2D(mpDevice, 1024, 1024, fboDesc);
+
+        mpTexture = mpFbo->getColorTexture(0);
+
+        mpCamera->setPosition({0, 0, 0});
+        mpCamera->setTarget({0.022, 0.997, 0.071});
+        mpCamera->setDepthRange(0.1f, 1000.f);
+        mpCamera->setFocalLength(30.f);
+
+        mSettings.ambient = {1, 1, 1};
+        mSettings.diffuse = {0, 0, 0};
+        mSettings.specular = {0, 0, 0};
+    }
+
+    void RenderToTextureMirror::setTexture(Texture::SharedPtr texture)
+    {
+        // disable manual texture setting
+        throw Exception("can't set texture manually for a render to texture mirror");
+    }
 }

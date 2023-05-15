@@ -40,8 +40,9 @@ namespace Falcor::Tutorial
         };
 
         explicit MirrorRenderer(const SampleAppConfig& config)
-            : SampleApp(config)
+            : SampleApp(config), mMirror({1.f, 1.f}, getDevice().get(), "main mirror")
         {
+            mObjects.push_back(mMirror);
         }
 
         // SampleApp implementation
@@ -51,26 +52,28 @@ namespace Falcor::Tutorial
         void onGuiRender(Gui* pGui) override;
         bool onKeyEvent(const KeyboardEvent& keyEvent) override;
         bool onMouseEvent(const MouseEvent& mouseEvent) override;
+        void onShutdown() override;
 
     private:
-        void createMirror(const float3& pos);
+        void renderObjects(RenderContext* pRenderContext, const std::shared_ptr<Fbo>& pTargetFbo, const Camera& camera) const;
+        void renderMirrors(RenderContext* pRenderContext) const;
         void applyRasterStateSettings() const;
 
         // rendering
         Sampler::SharedPtr mpTextureSampler;
         std::shared_ptr<Device> mpDevice;
-
-        Object::List mObjects;
-
-        // mirror
-        Texture::SharedPtr mpMirrorTexture;
-        TriangleMesh::SharedPtr mpMirror;
         GraphicsState::SharedPtr mpGraphicsState;
-        GraphicsVars::SharedPtr mpVars;
+        GraphicsVars::SharedPtr mpMainVars;
+        GraphicsProgram::SharedPtr mpMainProgram;
+        GraphicsVars::SharedPtr mpMirrorVars;
+        GraphicsProgram::SharedPtr mpMirrorProgram;
+
+        // Objects
+        Object::List mObjects;
+        RenderToTextureMirror mMirror;
 
         // camera
         Camera::SharedPtr mpMainCamera;
-        Camera::SharedPtr mpMirrorCamera;
         FirstPersonCameraController::SharedPtr mpCameraController;
 
         FrameRate mFrameRate;

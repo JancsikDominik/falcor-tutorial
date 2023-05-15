@@ -3,10 +3,12 @@ add_falcor_executable(MirrorRenderer)
 target_sources(MirrorRenderer PRIVATE
     MirrorRenderer.cpp
     MirrorRenderer.h
+	MirrorRenderer.vs.slang
+    MirrorRenderer.ps.slang
 	Mirror.cpp
 	Mirror.h
-    MirrorRenderer.vs.slang
-    MirrorRenderer.ps.slang
+	Mirror.vs.slang
+    Mirror.ps.slang
 )
 
 target_copy_shaders(MirrorRenderer Samples/MirrorRenderer)

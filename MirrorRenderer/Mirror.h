@@ -2,6 +2,7 @@
 #include "Core/SampleApp.h"
 #include "RenderGraph/BasePasses/FullScreenPass.h"
 #include "Scene/TriangleMesh.h"
+#include "Scene/Camera/Camera.h"
 
 namespace Falcor::Tutorial
 {
@@ -22,20 +23,22 @@ namespace Falcor::Tutorial
         using List = std::vector<Object>;
         using SharedPtr = std::shared_ptr<Object>;
 
-        Object(TriangleMesh::SharedPtr mesh, Device* device, std::string_view name);
+        Object(TriangleMesh::SharedPtr mesh, Device* device, const std::string_view name);
+        virtual ~Object() = default;
 
         void setTransform(Transform transform);
-        void setTexture(Texture::SharedPtr texture);
+        virtual void setTexture(Texture::SharedPtr texture);
 
         Transform getTransform() const;
         Texture::SharedPtr getTexture() const;
         Vao::SharedPtr getVao() const;
         uint32_t getIndexCount() const;
         Settings getSettings() const;
+        std::string getName() const { return mName; }
 
         void onGuiRender(Gui::Window& window);
 
-    private:
+    protected:
         bool createVao();
 
         TriangleMesh::SharedPtr mpMesh;
@@ -48,8 +51,22 @@ namespace Falcor::Tutorial
         Settings mSettings;
     };
 
-    class RenderToTextureMirror : public Object
+    class RenderToTextureMirror final : public Object
     {
-        // TODO: maybe
+    public:
+        // mirror can only be a quad
+        RenderToTextureMirror(TriangleMesh::SharedPtr mesh, Device* device, const std::string_view name) = delete;
+        RenderToTextureMirror(const float2& size, Device* device, std::string_view name);
+
+        void setTexture(Texture::SharedPtr texture) override;
+
+        Fbo::SharedPtr getFbo() const { return mpFbo; }
+        const Camera& getCamera() const { return *mpCamera; }
+
+    private:
+        Camera::SharedPtr mpCamera;
+        Fbo::SharedPtr mpFbo;
+
+        uint32_t mTextureResolution = 1024;
     };
 }
