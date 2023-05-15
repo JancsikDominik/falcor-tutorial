@@ -7,8 +7,6 @@ target_sources(MirrorRenderer PRIVATE
     MirrorRenderer.ps.slang
 	Mirror.cpp
 	Mirror.h
-	Mirror.vs.slang
-    Mirror.ps.slang
 )
 
 target_copy_shaders(MirrorRenderer Samples/MirrorRenderer)
