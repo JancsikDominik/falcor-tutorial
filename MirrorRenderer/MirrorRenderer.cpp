@@ -57,9 +57,6 @@ namespace Falcor::Tutorial
         mainProgramDesc.addShaderLibrary("Samples/MirrorRenderer/Mirror.vs.slang").vsEntry("main");
         mainProgramDesc.addShaderLibrary("Samples/MirrorRenderer/Mirror.ps.slang").psEntry("main");
 
-        mpMirrorProgram = GraphicsProgram::create(mpDevice, mirrorProgramDesc);
-        mpMirrorVars = GraphicsVars::create(mpDevice, mpMirrorProgram->getReflector());
-
         applyRasterStateSettings();
 
         DepthStencilState::Desc dsDesc;
@@ -110,6 +107,9 @@ namespace Falcor::Tutorial
         mFrameRate.newFrame();
         if (mSettings.renderSettings.showFPS)
             TextRenderer::render(pRenderContext, mFrameRate.getMsg(), pTargetFbo, {10, 10});
+
+        // clearing mirror texture
+        mMirror.clearTexture();
     }
 
     void MirrorRenderer::onGuiRender(Gui* pGui)
@@ -146,15 +146,6 @@ namespace Falcor::Tutorial
         return mpCameraController->onMouseEvent(mouseEvent);
     }
 
-    void MirrorRenderer::onShutdown()
-    {
-        for (const auto& object : mObjects)
-        {
-            if (object.getTexture() != nullptr)
-                object.getTexture()->captureToFile(0, 0, ("C:/Users/Jancsik/Desktop/" + object.getName() + ".png").c_str());
-        }
-    }
-
     void MirrorRenderer::renderObjects(RenderContext* pRenderContext, const std::shared_ptr<Fbo>& pTargetFbo, const Camera& camera) const
     {
         mpGraphicsState->setFbo(pTargetFbo);
@@ -185,34 +176,6 @@ namespace Falcor::Tutorial
             }
 
             mpGraphicsState->setVao(object.getVao());
-            pRenderContext->drawIndexed(mpGraphicsState.get(), mpMainVars.get(), object.getIndexCount(), 0, 0);
-        }
-    }
-
-    void MirrorRenderer::renderMirrors(RenderContext* pRenderContext) const
-    {
-        const auto& mirrorCamera = mMirror.getCamera();
-
-        mpMainVars["VSCBuffer"]["viewProjection"] = mirrorCamera.getViewProjMatrix();
-        mpMainVars["VSCBuffer"]["model"] = mMirror.getTransform().getMatrix();
-
-        mpMainVars["PSCBuffer"]["cameraPosition"] = mirrorCamera.getPosition();
-
-        for (const auto& object : mObjects)
-        {
-            mpMainVars["VSCBuffer"]["model"] = object.getTransform().getMatrix();
-
-            mpMainVars["PSCBuffer"]["materialAmbient"] = object.getSettings().ambient;
-            mpMainVars["PSCBuffer"]["materialDiffuse"] = object.getSettings().diffuse;
-            mpMainVars["PSCBuffer"]["materialSpecular"] = object.getSettings().specular;
-
-            const bool hasTexture = object.getTexture() != nullptr;
-            mpMainVars["PSCBuffer"]["isTextureLoaded"] = hasTexture;
-            if (hasTexture)
-            {
-                mpMainVars["PSCBuffer"]["objTexture"] = object.getTexture();
-                mpMainVars["PSCBuffer"]["texSampler"] = mpTextureSampler;
-            }
             pRenderContext->drawIndexed(mpGraphicsState.get(), mpMainVars.get(), object.getIndexCount(), 0, 0);
         }
     }

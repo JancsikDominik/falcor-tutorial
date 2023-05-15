@@ -26,7 +26,7 @@ namespace Falcor::Tutorial
         Object(TriangleMesh::SharedPtr mesh, Device* device, const std::string_view name);
         virtual ~Object() = default;
 
-        void setTransform(Transform transform);
+        virtual void setTransform(Transform transform);
         virtual void setTexture(Texture::SharedPtr texture);
 
         Transform getTransform() const;
@@ -59,6 +59,9 @@ namespace Falcor::Tutorial
         RenderToTextureMirror(const float2& size, Device* device, std::string_view name);
 
         void setTexture(Texture::SharedPtr texture) override;
+        // TODO:
+        void setTransform(Transform transform) override;
+        void clearTexture();
 
         Fbo::SharedPtr getFbo() const { return mpFbo; }
         const Camera& getCamera() const { return *mpCamera; }
@@ -67,6 +70,6 @@ namespace Falcor::Tutorial
         Camera::SharedPtr mpCamera;
         Fbo::SharedPtr mpFbo;
 
-        uint32_t mTextureResolution = 1024;
+        uint32_t mTextureResolution = 512;
     };
 }

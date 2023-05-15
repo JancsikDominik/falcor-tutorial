@@ -3,7 +3,6 @@
 #include "Mirror.h"
 #include "Core/SampleApp.h"
 #include "RenderGraph/BasePasses/FullScreenPass.h"
-#include "Scene/TriangleMesh.h"
 #include "Scene/Camera/Camera.h"
 #include "Scene/Camera/CameraController.h"
 
@@ -52,11 +51,9 @@ namespace Falcor::Tutorial
         void onGuiRender(Gui* pGui) override;
         bool onKeyEvent(const KeyboardEvent& keyEvent) override;
         bool onMouseEvent(const MouseEvent& mouseEvent) override;
-        void onShutdown() override;
 
     private:
         void renderObjects(RenderContext* pRenderContext, const std::shared_ptr<Fbo>& pTargetFbo, const Camera& camera) const;
-        void renderMirrors(RenderContext* pRenderContext) const;
         void applyRasterStateSettings() const;
 
         // rendering
@@ -65,8 +62,6 @@ namespace Falcor::Tutorial
         GraphicsState::SharedPtr mpGraphicsState;
         GraphicsVars::SharedPtr mpMainVars;
         GraphicsProgram::SharedPtr mpMainProgram;
-        GraphicsVars::SharedPtr mpMirrorVars;
-        GraphicsProgram::SharedPtr mpMirrorProgram;
 
         // Objects
         Object::List mObjects;

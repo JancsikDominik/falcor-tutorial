@@ -12,6 +12,9 @@ namespace Falcor::Tutorial
 
     void Object::setTransform(Transform transform)
     {
+        mSettings.pos = transform.getTranslation();
+        mSettings.rotation = transform.getRotationEuler();
+        mSettings.scale = transform.getScaling();
         mTransform = std::move(transform);
     }
 
@@ -135,7 +138,7 @@ namespace Falcor::Tutorial
     {
         Fbo::Desc fboDesc;
         fboDesc.setColorTarget(0, ResourceFormat::RGBA32Float);
-        mpFbo = Fbo::create2D(mpDevice, 1024, 1024, fboDesc);
+        mpFbo = Fbo::create2D(mpDevice, mTextureResolution * size.x, mTextureResolution * size.y, fboDesc);
 
         mpTexture = mpFbo->getColorTexture(0);
 
@@ -143,6 +146,7 @@ namespace Falcor::Tutorial
         mpCamera->setTarget({0.022, 0.997, 0.071});
         mpCamera->setDepthRange(0.1f, 1000.f);
         mpCamera->setFocalLength(30.f);
+        mpCamera->setAspectRatio((mTextureResolution * size.x) / (mTextureResolution * size.y));
 
         mSettings.ambient = {1, 1, 1};
         mSettings.diffuse = {0, 0, 0};
@@ -153,5 +157,22 @@ namespace Falcor::Tutorial
     {
         // disable manual texture setting
         throw Exception("can't set texture manually for a render to texture mirror");
+    }
+
+    void RenderToTextureMirror::setTransform(Transform transform)
+    {
+        Object::setTransform(transform);
+    }
+
+    void RenderToTextureMirror::clearTexture()
+    {
+        const Texture::BindFlags flags = Texture::BindFlags::ShaderResource | Texture::BindFlags::RenderTarget;
+
+        mpTexture = Texture::create2D(
+            mpDevice, mpFbo->getWidth(), mpFbo->getHeight(), mpFbo->getDesc().getColorTargetFormat(0), 1, Resource::kMaxPossible, nullptr, flags
+        );
+
+        mpFbo->attachColorTarget(mpTexture, 0, 0, 0, Fbo::kAttachEntireMipLevel);
+        mpTexture = mpFbo->getColorTexture(0);
     }
 }
