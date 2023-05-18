@@ -39,9 +39,9 @@ namespace Falcor::Tutorial
         };
 
         explicit MirrorRenderer(const SampleAppConfig& config)
-            : SampleApp(config), mMirror({1.f, 1.f}, getDevice().get(), "main mirror")
+            : SampleApp(config), mMirrorObj(std::make_shared<RenderToTextureMirror>(float2(1, 1), getDevice().get(), "main mirror"))
         {
-            mObjects.push_back(mMirror);
+            mObjects.push_back(mMirrorObj);
         }
 
         // SampleApp implementation
@@ -65,11 +65,13 @@ namespace Falcor::Tutorial
 
         // Objects
         Object::List mObjects;
-        RenderToTextureMirror mMirror;
+        RenderToTextureMirror::SharedPtr mMirrorObj;
 
         // camera
         Camera::SharedPtr mpMainCamera;
         FirstPersonCameraController::SharedPtr mpCameraController;
+
+        bool isMainCameraUsed = true;
 
         FrameRate mFrameRate;
 

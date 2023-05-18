@@ -74,10 +74,10 @@ namespace Falcor::Tutorial
         mpCameraController = FirstPersonCameraController::create(mpMainCamera);
 
         // TODO: remove
-        mObjects.push_back(Object(TriangleMesh::createSphere(), mpDevice.get(), "sphere"));
+        mObjects.push_back(std::make_shared<Object>(TriangleMesh::createSphere(), mpDevice.get(), "sphere"));
         Transform t;
         t.setTranslation({0, 1.5, 0});
-        mObjects[1].setTransform(t);
+        mObjects[1]->setTransform(t);
     }
 
     void MirrorRenderer::onResize(uint32_t width, uint32_t height)
@@ -96,20 +96,22 @@ namespace Falcor::Tutorial
     void MirrorRenderer::onFrameRender(RenderContext* pRenderContext, const std::shared_ptr<Fbo>& pTargetFbo)
     {
         mpCameraController->update();
+
+        const auto& mirror = static_cast<RenderToTextureMirror*>(mMirrorObj.get());
+        mirror->setViewAngle(mpMainCamera->getPosition());
+
         pRenderContext->clearFbo(pTargetFbo.get(), {0, 0.25, 0, 1}, 1.0f, 0, FboAttachmentType::All);
+        mirror->clearMirror(pRenderContext, {0, 0.25, 0, 1});
 
         // rendering scene into mirror's texture
-        renderObjects(pRenderContext, mMirror.getFbo(), mMirror.getCamera());
+        renderObjects(pRenderContext, mirror->getFbo(), mirror->getCamera());
 
         // rendering scene normally
-        renderObjects(pRenderContext, pTargetFbo, *mpMainCamera);
+        renderObjects(pRenderContext, pTargetFbo, isMainCameraUsed ? *mpMainCamera : mirror->getCamera());
 
         mFrameRate.newFrame();
         if (mSettings.renderSettings.showFPS)
             TextRenderer::render(pRenderContext, mFrameRate.getMsg(), pTargetFbo, {10, 10});
-
-        // clearing mirror texture
-        mMirror.clearTexture();
     }
 
     void MirrorRenderer::onGuiRender(Gui* pGui)
@@ -121,19 +123,15 @@ namespace Falcor::Tutorial
 
         mSettings.lightSettings.onGuiRender(window);
 
-        for (auto& object : mObjects)
+        for (const auto& object : mObjects)
         {
-            object.onGuiRender(window);
+            object->onGuiRender(window);
         }
 
-        float3 camPos = mpMainCamera->getPosition();
-
-        if (window.var("cam pos: ", camPos))
-            mpMainCamera->setPosition(camPos);
-
-        float3 camTarget = mpMainCamera->getTarget();
-        if (window.var("cam target: ", camTarget))
-            mpMainCamera->setTarget(camTarget);
+        if (window.button("switch camera"))
+        {
+            isMainCameraUsed = !isMainCameraUsed;
+        }
     }
 
     bool MirrorRenderer::onKeyEvent(const KeyboardEvent& keyEvent)
@@ -161,22 +159,22 @@ namespace Falcor::Tutorial
 
         for (const auto& object : mObjects)
         {
-            mpMainVars["VSCBuffer"]["model"] = object.getTransform().getMatrix();
+            mpMainVars["VSCBuffer"]["model"] = object->getTransform().getMatrix();
 
-            mpMainVars["PSCBuffer"]["materialAmbient"] = object.getSettings().ambient;
-            mpMainVars["PSCBuffer"]["materialDiffuse"] = object.getSettings().diffuse;
-            mpMainVars["PSCBuffer"]["materialSpecular"] = object.getSettings().specular;
+            mpMainVars["PSCBuffer"]["materialAmbient"] = object->getSettings().ambient;
+            mpMainVars["PSCBuffer"]["materialDiffuse"] = object->getSettings().diffuse;
+            mpMainVars["PSCBuffer"]["materialSpecular"] = object->getSettings().specular;
 
-            const bool hasTexture = object.getTexture() != nullptr;
+            const bool hasTexture = object->getTexture() != nullptr;
             mpMainVars["PSCBuffer"]["isTextureLoaded"] = hasTexture;
             if (hasTexture)
             {
-                mpMainVars["PSCBuffer"]["objTexture"] = object.getTexture();
+                mpMainVars["PSCBuffer"]["objTexture"] = object->getTexture();
                 mpMainVars["PSCBuffer"]["texSampler"] = mpTextureSampler;
             }
 
-            mpGraphicsState->setVao(object.getVao());
-            pRenderContext->drawIndexed(mpGraphicsState.get(), mpMainVars.get(), object.getIndexCount(), 0, 0);
+            mpGraphicsState->setVao(object->getVao());
+            pRenderContext->drawIndexed(mpGraphicsState.get(), mpMainVars.get(), object->getIndexCount(), 0, 0);
         }
     }
 
