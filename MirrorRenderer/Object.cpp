@@ -22,6 +22,23 @@ namespace Falcor::Tutorial
         mpTexture = std::move(texture);
     }
 
+    void Object::setAmbient(const float3& ambient)
+    {
+        mSettings.ambient.x = ambient.x;
+        mSettings.ambient.y = ambient.y;
+        mSettings.ambient.z = ambient.z;
+    }
+
+    void Object::setDiffuse(const float3& diffuse)
+    {
+        mSettings.diffuse = diffuse;
+    }
+
+    void Object::setSpecular(const float3& specular)
+    {
+        mSettings.specular = specular;
+    }
+
     Transform Object::getTransform() const
     {
         return mTransform;

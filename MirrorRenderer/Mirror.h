@@ -15,15 +15,23 @@ namespace Falcor::Tutorial
         void setTexture(Texture::SharedPtr texture) override;
         void setTransform(Transform transform) override;
         void onGuiRender(Gui::Window& window) override;
-        void setViewAngle(const float3& observerPos) const;
+        FlipTextureAxis getTextureFlipAxis() override { return Y; }
+
+        void setViewAngle(const float3& observerPos);
         void clearMirror(RenderContext* context, const float4& clearCorlor) const;
 
         Fbo::SharedPtr getFbo() const { return mpFbo; }
-        const Camera& getCamera() const { return *mpCamera; }
+        const float3& getCameraPos() const { return mSettings.pos; }
+        rmcv::mat4 getCameraViewProjMatrix() const { return mpCamera->getViewProjMatrix(); }
 
     private:
         Camera::SharedPtr mpCamera;
         Fbo::SharedPtr mpFbo;
+        float3 mObserverPos;
+        float3 mReflectionVector;
+        float2 mQuadSize;
+
+        rmcv::mat4 mViewMatrix;
 
         float3 mSurfaceNormal;
 

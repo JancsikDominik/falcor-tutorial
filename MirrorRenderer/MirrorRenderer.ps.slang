@@ -27,10 +27,17 @@ cbuffer PSCBuffer
     SamplerState texSampler;
 
     bool isTextureLoaded;
+
+    bool isMirror;
 };
 
 float4 main(PSIn input) : SV_TARGET
 {
+    if (isMirror)
+    {
+        return float4(0.95, 0.95, 0.95, 1) * objTexture.Sample(texSampler, input.texCoord);
+    }
+    
     float3 ambient = lightAmbient * materialAmbient;
 
     // just to make sure its normalized

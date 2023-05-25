@@ -53,10 +53,6 @@ namespace Falcor::Tutorial
         mpGraphicsState = GraphicsState::create(mpDevice);
         mpMainVars = GraphicsVars::create(mpDevice, mpMainProgram->getReflector());
 
-        Program::Desc mirrorProgramDesc;
-        mainProgramDesc.addShaderLibrary("Samples/MirrorRenderer/Mirror.vs.slang").vsEntry("main");
-        mainProgramDesc.addShaderLibrary("Samples/MirrorRenderer/Mirror.ps.slang").psEntry("main");
-
         applyRasterStateSettings();
 
         DepthStencilState::Desc dsDesc;
@@ -65,19 +61,13 @@ namespace Falcor::Tutorial
 
         mpTextureSampler = Sampler::create(mpDevice.get(), {});
 
-        mpMainCamera = Camera::create("main camera");
-        mpMainCamera->setPosition({6, 3, 3});
-        mpMainCamera->setTarget({0, 0, 0});
-        mpMainCamera->setDepthRange(0.1f, 1000.f);
-        mpMainCamera->setFocalLength(30.f);
+        buildScene();
 
-        mpCameraController = FirstPersonCameraController::create(mpMainCamera);
-
-        // TODO: remove
-        mObjects.push_back(std::make_shared<Object>(TriangleMesh::createSphere(), mpDevice.get(), "sphere"));
-        Transform t;
-        t.setTranslation({0, 1.5, 0});
-        mObjects[1]->setTransform(t);
+        mpObserver = std::make_shared<FpsObserver>(TriangleMesh::createFromFile("C:/Users/Jancsik/Documents/suzanne.obj"), mpDevice.get(), "Player");
+        Transform observerTransform;
+        observerTransform.setTranslation({0, 0, -7});
+        mpObserver->setTransform(observerTransform);
+        mObjects.push_back(mpObserver);
     }
 
     void MirrorRenderer::onResize(uint32_t width, uint32_t height)
@@ -85,29 +75,48 @@ namespace Falcor::Tutorial
         const float h = static_cast<float>(height);
         const float w = static_cast<float>(width);
 
-        if (mpMainCamera != nullptr)
+        if (mpObserver != nullptr)
         {
-            mpMainCamera->setFocalLength(30.f);
+            mpObserver->getCamera()->setFocalLength(30.f);
             const float aspectRatio = (w / h);
-            mpMainCamera->setAspectRatio(aspectRatio);
+            mpObserver->getCamera()->setAspectRatio(aspectRatio);
         }
     }
 
     void MirrorRenderer::onFrameRender(RenderContext* pRenderContext, const std::shared_ptr<Fbo>& pTargetFbo)
     {
-        mpCameraController->update();
-
-        const auto& mirror = static_cast<RenderToTextureMirror*>(mMirrorObj.get());
-        mirror->setViewAngle(mpMainCamera->getPosition());
-
+        mpObserver->update();
         pRenderContext->clearFbo(pTargetFbo.get(), {0, 0.25, 0, 1}, 1.0f, 0, FboAttachmentType::All);
-        mirror->clearMirror(pRenderContext, {0, 0.25, 0, 1});
 
-        // rendering scene into mirror's texture
-        renderObjects(pRenderContext, mirror->getFbo(), mirror->getCamera());
+        float3 camPos;
+        rmcv::mat4 viewProj;
+
+        if (mUpdateMirror)
+        {
+            const auto& mirror = dynamic_cast<RenderToTextureMirror*>(mpMirrorObj.get());
+            camPos = mirror->getCameraPos();
+            viewProj = mirror->getCameraViewProjMatrix();
+            mirror->setViewAngle(mpObserver->getCamera()->getPosition());
+
+            mirror->clearMirror(pRenderContext, {0, 0.25, 0, 1});
+            // rendering scene onto mirror's texture
+            renderObjects(pRenderContext, mirror->getFbo(), camPos, viewProj);
+        }
+
+        if (mIsMainCameraUsed || !mUpdateMirror)
+        {
+            camPos = mpObserver->getCamera()->getPosition();
+            viewProj = mpObserver->getCamera()->getViewProjMatrix();
+        }
+
+        // removing player model
+        mObjects.pop_back();
 
         // rendering scene normally
-        renderObjects(pRenderContext, pTargetFbo, isMainCameraUsed ? *mpMainCamera : mirror->getCamera());
+        renderObjects(pRenderContext, pTargetFbo, camPos, viewProj);
+
+        // putting back player model
+        mObjects.push_back(mpObserver);
 
         mFrameRate.newFrame();
         if (mSettings.renderSettings.showFPS)
@@ -128,30 +137,32 @@ namespace Falcor::Tutorial
             object->onGuiRender(window);
         }
 
+        window.checkbox("Update mirror", mUpdateMirror);
+
         if (window.button("switch camera"))
         {
-            isMainCameraUsed = !isMainCameraUsed;
+            mIsMainCameraUsed = !mIsMainCameraUsed;
         }
     }
 
     bool MirrorRenderer::onKeyEvent(const KeyboardEvent& keyEvent)
     {
-        return mpCameraController->onKeyEvent(keyEvent);
+        return mpObserver->onKeyEvent(keyEvent);
     }
 
     bool MirrorRenderer::onMouseEvent(const MouseEvent& mouseEvent)
     {
-        return mpCameraController->onMouseEvent(mouseEvent);
+        return mpObserver->onMouseEvent(mouseEvent);
     }
 
-    void MirrorRenderer::renderObjects(RenderContext* pRenderContext, const std::shared_ptr<Fbo>& pTargetFbo, const Camera& camera) const
+    void MirrorRenderer::renderObjects(RenderContext* pRenderContext, const std::shared_ptr<Fbo>& pTargetFbo, const float3& cameraPos, const rmcv::mat4& cameraViewProjMatrix) const
     {
         mpGraphicsState->setFbo(pTargetFbo);
         mpGraphicsState->setProgram(mpMainProgram);
 
-        mpMainVars["VSCBuffer"]["viewProjection"] = camera.getViewProjMatrix();
+        mpMainVars["VSCBuffer"]["viewProjection"] = cameraViewProjMatrix;
 
-        mpMainVars["PSCBuffer"]["cameraPosition"] = camera.getPosition();
+        mpMainVars["PSCBuffer"]["cameraPosition"] = cameraPos;
         mpMainVars["PSCBuffer"]["lightAmbient"] = mSettings.lightSettings.ambient;
         mpMainVars["PSCBuffer"]["lightDiffuse"] = mSettings.lightSettings.diffuse;
         mpMainVars["PSCBuffer"]["lightSpecular"] = mSettings.lightSettings.specular;
@@ -160,10 +171,12 @@ namespace Falcor::Tutorial
         for (const auto& object : mObjects)
         {
             mpMainVars["VSCBuffer"]["model"] = object->getTransform().getMatrix();
+            mpMainVars["VSCBuffer"]["flipTextureOnAxis"] = static_cast<uint32_t>(object->getTextureFlipAxis());
 
             mpMainVars["PSCBuffer"]["materialAmbient"] = object->getSettings().ambient;
             mpMainVars["PSCBuffer"]["materialDiffuse"] = object->getSettings().diffuse;
             mpMainVars["PSCBuffer"]["materialSpecular"] = object->getSettings().specular;
+            mpMainVars["PSCBuffer"]["isMirror"] = dynamic_cast<RenderToTextureMirror*>(object.get()) != nullptr;
 
             const bool hasTexture = object->getTexture() != nullptr;
             mpMainVars["PSCBuffer"]["isTextureLoaded"] = hasTexture;
@@ -187,6 +200,30 @@ namespace Falcor::Tutorial
         rsDesc.setCullMode(mSettings.renderSettings.cullMode);
         rsDesc.setFillMode(mSettings.renderSettings.fillMode);
         mpGraphicsState->setRasterizerState(RasterizerState::create(rsDesc));
+    }
+
+    void MirrorRenderer::buildScene()
+    {
+        const auto floor = std::make_shared<Object>(TriangleMesh::createQuad({100, 100}), mpDevice.get(), "floor");
+        Transform floorTransform;
+        floorTransform.setTranslation({0, -3.5, 0});
+        floor->setTransform(floorTransform);
+        floor->setAmbient({1, 1, 1});
+        floor->setDiffuse({1, 1, 1});
+        floor->setSpecular({1, 1, 1});
+        floor->setTexture(Texture::createFromFile(mpDevice.get(), "C:/Users/Jancsik/Documents/floorTexture.jpg", true, true));
+        mObjects.push_back(floor);
+
+        for (uint32_t i = 0; i < 32; i++)
+        {
+            const auto pMesh = i % 2 == 0 ? TriangleMesh::createCube({0.5, 0.5, 0.5}) : TriangleMesh::createSphere(0.25);
+            mObjects.push_back(std::make_shared<Object>(pMesh, mpDevice.get(), "cube" + std::to_string(i)));
+            Transform t;
+            t.setTranslation({cos(2 * (i / M_PI)) * 3, -3 + i * (1.f / 2), sin(2 * (i / M_PI)) * 3 - 7});
+
+            mObjects[i + 2]->setTransform(t);
+            mObjects[i + 2]->setAmbient({static_cast<float>(i) * 0.01, static_cast<float>(i) * 0.03, static_cast<float>(i) * 0.04});
+        }
     }
 }
 

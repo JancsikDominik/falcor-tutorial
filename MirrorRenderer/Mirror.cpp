@@ -5,19 +5,18 @@
 namespace Falcor::Tutorial
 {
     RenderToTextureMirror::RenderToTextureMirror(const float2& size, Device* device, const std::string_view name)
-        : Object(TriangleMesh::createQuad(size), device, name), mpCamera(Camera::create("mirror camera"))
+        : Object(TriangleMesh::createQuad(size), device, name), mpCamera(Camera::create("mirror camera")), mQuadSize(size)
     {
         Fbo::Desc fboDesc;
         fboDesc.setColorTarget(0, ResourceFormat::RGBA32Float);
-        mpFbo = Fbo::create2D(mpDevice, mTextureResolution * size.x, mTextureResolution * size.y, fboDesc);
+        mpFbo = Fbo::create2D(mpDevice, size.x * mTextureResolution, size.y * mTextureResolution, fboDesc);
 
         mpTexture = mpFbo->getColorTexture(0);
 
-        mpCamera->setPosition({0, 0, 0});
-        mpCamera->setTarget({0.022, 0.997, 0.071});
-        mpCamera->setDepthRange(0.1f, 1000.f);
-        mpCamera->setFocalLength(30.f);
-        mpCamera->setAspectRatio((mTextureResolution * size.x) / (mTextureResolution * size.y));
+        mpCamera->setDepthRange(.1f, 200.f);
+        mpCamera->setFocalLength(22.75f);
+        mpCamera->setAspectRatio((size.x * mTextureResolution) / (size.y * mTextureResolution));
+        mpCamera->setUpVector({0, 1, 0});
 
         mSettings.ambient = {1, 1, 1};
         mSettings.diffuse = {0, 0, 0};
@@ -35,61 +34,55 @@ namespace Falcor::Tutorial
     void RenderToTextureMirror::setTransform(Transform transform)
     {
         mpCamera->setPosition(transform.getTranslation());
-        mSurfaceNormal = (float4(mSurfaceNormal, 1) * transform.getMatrix()).xyz;
 
+        /*Transform cameraRotation;
+        float3 rotationAngles = transform.getRotationEuler();
+        rotationAngles = -rotationAngles;
+        cameraRotation.setRotationEuler(transform.getRotationEuler());
+
+        mpCamera->setUpVector(float3(0, 0, 1) * rmcv::mat3(cameraRotation.getMatrix()));*/
+
+        const auto& inverseTranspose4by4 = transpose(inverse(transform.getMatrix()));
+        const rmcv::mat3& inverseTranspose = inverseTranspose4by4;
+
+        const float3& surfaceNormal = inverseTranspose * float3(0, 1, 0);
+        mSurfaceNormal = normalize(surfaceNormal);
+
+        mpCamera->setAspectRatio((transform.getScaling().x * mQuadSize.x )/ (transform.getScaling().z * mQuadSize.y));
+
+        setViewAngle(mObserverPos);
         Object::setTransform(transform);
-
-        // mpCamera->setTarget(mpCamera->getTarget() * mSettings.rotation);
     }
 
     void RenderToTextureMirror::onGuiRender(Gui::Window& window)
     {
         if (auto modelGroup = window.group(mName))
         {
-            window.rgbColor((mName + " ambient").c_str(), mSettings.ambient);
-            window.rgbColor((mName + " diffuse").c_str(), mSettings.diffuse);
-            window.rgbColor((mName + " specular").c_str(), mSettings.specular);
+            window.text(
+                "surface normal: " + std::to_string(mSurfaceNormal.x) + " " +
+                std::to_string(mSurfaceNormal.y) + "  " +
+                std::to_string(mSurfaceNormal.z)
+            );
+
+            window.text(
+                "reflection vector: " +
+                std::to_string(mReflectionVector.x) + " " +
+                std::to_string(mReflectionVector.y) + " " +
+                std::to_string(mReflectionVector.z)
+            );
 
             window.separator();
 
-            bool transformChanged = false;
-
-            if (window.var((mName + " position").c_str(), mSettings.pos))
-                transformChanged = true;
-            if (window.var((mName + " scale").c_str(), mSettings.scale))
-                transformChanged = true;
-            if (window.var((mName + " rotation (radian)").c_str(), mSettings.rotation))
-                transformChanged = true;
-
-            window.separator();
-
-            if (window.button(("Upload texture for " + mName).c_str()))
-            {
-                std::filesystem::path path;
-                if (openFileDialog({{"png", ""}, {"jpg", ""}}, path))
-                {
-                    mpTexture = Texture::createFromFile(mpDevice, path, true, false);
-                }
-            }
-
-            if (transformChanged)
-            {
-                Transform newTransform;
-
-                newTransform.setScaling(mSettings.scale);
-                newTransform.setTranslation(mSettings.pos);
-                newTransform.setRotationEuler(mSettings.rotation);
-
-                setTransform(newTransform);
-            }
+            mpCamera->renderUI(window);
         }
     }
 
-    void RenderToTextureMirror::setViewAngle(const float3& observerPos) const
+    void RenderToTextureMirror::setViewAngle(const float3& observerPos)
     {
         float3 inVector = normalize(mpCamera->getPosition() - observerPos);
-        float3 reflectionVector = inVector - 2 * dot(inVector, mSurfaceNormal) * mSurfaceNormal;
-        mpCamera->setTarget(reflectionVector);
+        mReflectionVector = inVector - 2 * dot(inVector, mSurfaceNormal) * mSurfaceNormal;
+        mpCamera->setTarget(mReflectionVector);
+        mObserverPos = observerPos;
     }
 
     void RenderToTextureMirror::clearMirror(RenderContext* context, const float4& clearCorlor) const

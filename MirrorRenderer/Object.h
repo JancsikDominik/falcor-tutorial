@@ -21,6 +21,14 @@ namespace Falcor::Tutorial
             float3 specular = {0, 0.25, 0.2};
         };
 
+        enum FlipTextureAxis : uint32_t
+        {
+            None = 0,
+            X,
+            Y,
+            XY
+        };
+
         using SharedPtr = std::shared_ptr<Object>;
         using List = std::vector<Object::SharedPtr>;
 
@@ -29,6 +37,10 @@ namespace Falcor::Tutorial
 
         virtual void setTransform(Transform transform);
         virtual void setTexture(Texture::SharedPtr texture);
+        virtual FlipTextureAxis getTextureFlipAxis() { return None; }
+        void setAmbient(const float3& ambient);
+        void setDiffuse(const float3& diffuse);
+        void setSpecular(const float3& specular);
 
         Transform getTransform() const;
         Texture::SharedPtr getTexture() const;
@@ -40,7 +52,7 @@ namespace Falcor::Tutorial
         virtual void onGuiRender(Gui::Window& window);
 
     protected:
-        bool createVao();
+        virtual bool createVao();
 
         TriangleMesh::SharedPtr mpMesh;
         Texture::SharedPtr mpTexture;

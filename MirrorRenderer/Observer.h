@@ -13,11 +13,17 @@ namespace Falcor::Tutorial
 
         using SharedPtr = std::shared_ptr<Observer>;
 
+        void setTransform(Transform transform) override;
+
         virtual bool onMouseEvent(const MouseEvent& mouseEvent) = 0;
         virtual bool onKeyEvent(const KeyboardEvent& keyboardEvent) = 0;
         virtual bool update() = 0;
 
+        Camera::SharedPtr getCamera() const { return mpCamera; }
+
     protected:
+        float3 getCameraRotation() const;
+
         Camera::SharedPtr mpCamera;
     };
 

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Mirror.h"
+#include "Observer.h"
 #include "Core/SampleApp.h"
 #include "RenderGraph/BasePasses/FullScreenPass.h"
 #include "Scene/Camera/Camera.h"
@@ -39,9 +40,13 @@ namespace Falcor::Tutorial
         };
 
         explicit MirrorRenderer(const SampleAppConfig& config)
-            : SampleApp(config), mMirrorObj(std::make_shared<RenderToTextureMirror>(float2(1, 1), getDevice().get(), "main mirror"))
+            : SampleApp(config), mpMirrorObj(std::make_shared<RenderToTextureMirror>(float2(3, 3), getDevice().get(), "main mirror"))
         {
-            mObjects.push_back(mMirrorObj);
+            Transform t;
+            t.setRotationEuler({-1.57079633, 0, 0});
+            t.setScaling({2, 1, 1});
+            mpMirrorObj->setTransform(t);
+            mObjects.push_back(mpMirrorObj);
         }
 
         // SampleApp implementation
@@ -53,8 +58,14 @@ namespace Falcor::Tutorial
         bool onMouseEvent(const MouseEvent& mouseEvent) override;
 
     private:
-        void renderObjects(RenderContext* pRenderContext, const std::shared_ptr<Fbo>& pTargetFbo, const Camera& camera) const;
+        void renderObjects(
+            RenderContext* pRenderContext,
+            const std::shared_ptr<Fbo>& pTargetFbo,
+            const float3& cameraPos,
+            const rmcv::mat4& cameraViewProjMatrix
+        ) const;
         void applyRasterStateSettings() const;
+        void buildScene();
 
         // rendering
         Sampler::SharedPtr mpTextureSampler;
@@ -65,16 +76,13 @@ namespace Falcor::Tutorial
 
         // Objects
         Object::List mObjects;
-        RenderToTextureMirror::SharedPtr mMirrorObj;
-
-        // camera
-        Camera::SharedPtr mpMainCamera;
-        FirstPersonCameraController::SharedPtr mpCameraController;
-
-        bool isMainCameraUsed = true;
-
-        FrameRate mFrameRate;
-
+        RenderToTextureMirror::SharedPtr mpMirrorObj;
         Settings mSettings;
+
+        FpsObserver::SharedPtr mpObserver;
+
+        bool mUpdateMirror = true;
+        bool mIsMainCameraUsed = true;
+        FrameRate mFrameRate;
     };
 }
