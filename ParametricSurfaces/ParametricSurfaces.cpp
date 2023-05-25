@@ -54,11 +54,13 @@ namespace Falcor::Tutorial
         for (int i = 0; i < mSettings.modelSettings.size(); i++)
         {
             mpGraphicsVars["VSCBuffer"]["settings"][i]["transform"] = mSettings.modelSettings[i].transform;
+            mpGraphicsVars["VSCBuffer"]["settings"][i]["transformIT"] = inverse(transpose(mSettings.modelSettings[i].transform));
             mpGraphicsVars["VSCBuffer"]["settings"][i]["ambient"] = mSettings.modelSettings[i].ambient;
             mpGraphicsVars["VSCBuffer"]["settings"][i]["diffuse"] = mSettings.modelSettings[i].diffuse;
             mpGraphicsVars["VSCBuffer"]["settings"][i]["specular"] = mSettings.modelSettings[i].specular;
             mpGraphicsVars["VSCBuffer"]["settings"][i]["tex"] = mSettings.modelSettings[i].texture;
-            mpGraphicsVars["VSCBuffer"]["settings"][i]["hasPerlinNoise"] = mSettings.modelSettings[i].perlinNoise != nullptr;
+            mpGraphicsVars["VSCBuffer"]["settings"][i]["hasPerlinNoise"] = mSettings.modelSettings[i].perlinNoise != nullptr && mSettings.modelSettings[i].type == Plane;
+            mpGraphicsVars["VSCBuffer"]["settings"][i]["pixelWidth"] = 1.f / 256;
 
             if (mSettings.modelSettings[i].perlinNoise != nullptr)
             {
@@ -202,11 +204,6 @@ namespace Falcor::Tutorial
                     generatePerlinNoiseBuffer(i);
                 }
 
-                if (window.button(("Apply perlin noise as texture for " + mpModels[i]->getName()).c_str()))
-                {
-                    mSettings.modelSettings[i].texture = mSettings.modelSettings[i].perlinNoise;
-                }
-
                 if (window.button(("Upload texture for " + mpModels[i]->getName()).c_str()))
                 {
                     std::filesystem::path path;
@@ -306,9 +303,6 @@ namespace Falcor::Tutorial
         const ResourceBindFlags bindFlags = Resource::BindFlags::Vertex | ResourceBindFlags::ShaderResource | ResourceBindFlags::UnorderedAccess;
         Buffer::SharedPtr joinedBuffer;
 
-        const auto originalSettings = mSettings.modelSettings;
-        mSettings.modelSettings.clear();
-
         std::vector<Vertex> vertexDataWithModelIndex;
         for (size_t i = 0; i < mpModels.size(); i++)
         {
@@ -321,11 +315,6 @@ namespace Falcor::Tutorial
                 v.modelIndex = i;
                 vertexDataWithModelIndex.push_back(v);
             }
-
-            if (i < originalSettings.size())
-                mSettings.modelSettings.push_back(originalSettings[i]);
-            else
-                mSettings.modelSettings.emplace_back(ModelSettings());
         }
 
         Buffer::SharedPtr pBuffer = Buffer::createStructured(
@@ -408,6 +397,7 @@ namespace Falcor::Tutorial
         const Vao::SharedPtr pVao = createVao();
         if (pVao != nullptr)
         {
+            mSettings.modelSettings.emplace_back();
             mReadyToDraw = true;
             mpGraphicsState->setVao(pVao);
             mFrameRate.reset();
@@ -424,6 +414,9 @@ namespace Falcor::Tutorial
         const Vao::SharedPtr pVao = createVao();
         if (pVao != nullptr)
         {
+            auto settings = ModelSettings();
+            settings.type = Sphere;
+            mSettings.modelSettings.push_back(settings);
             mReadyToDraw = true;
             mpGraphicsState->setVao(pVao);
             mFrameRate.reset();

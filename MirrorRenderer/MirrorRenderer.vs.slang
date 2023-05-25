@@ -2,6 +2,7 @@ cbuffer VSCBuffer
 {
     float4x4 viewProjection;
     float4x4 model;
+    float4x4 modelIT;
 
     // 1 -> X, 2 -> Y, 3 -> XY, any other number -> None
     uint flipTextureOnAxis;
@@ -26,7 +27,7 @@ VSOut main(in VSIn input)
     VSOut output;
     float4x4 mvp = mul(viewProjection, model);
     output.pos = mul(mvp, float4(input.objSpacePos, 1));
-    output.normal = mul(model, float4(input.normal, 1)).xyz;
+    output.normal = mul(modelIT, float4(input.normal, 1)).xyz;
 
     float2 flipVector = float2(1.0, 1.0);
     if (flipTextureOnAxis == 1)

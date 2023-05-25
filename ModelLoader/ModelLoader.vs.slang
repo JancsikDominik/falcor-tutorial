@@ -2,6 +2,7 @@ cbuffer VSCBuffer
 {
     float4x4 viewProjection;
     float4x4 model;
+    float4x4 modelIT;
 }
 
 struct VSOut
@@ -23,7 +24,7 @@ VSOut main(in VSIn input)
     VSOut output;
     float4x4 mvp = mul(viewProjection, model);
     output.pos = mul(mvp, float4(input.objSpacePos, 1));
-    output.normal = mul(model, float4(input.normal, 1)).xyz;
+    output.normal = mul(modelIT, float4(input.normal, 1)).xyz;
     output.texCoord = input.texCoord;
     return output;
 }

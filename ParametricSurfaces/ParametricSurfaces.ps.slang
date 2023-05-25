@@ -54,5 +54,4 @@ float4 main(PSIn input) : SV_TARGET
         return float4(ambient + diffuse + specular, 1) * modelSettings[input.modelIndex].tex.Sample(texSampler, input.texCoord);
     else
         return float4(ambient + diffuse + specular, 1);
-
 }

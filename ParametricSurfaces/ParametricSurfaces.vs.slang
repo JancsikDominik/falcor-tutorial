@@ -5,6 +5,7 @@ struct ModelSettings
     float3 specular;
 
     float4x4 transform;
+    float4x4 transformIT;
 
     Texture2D tex;
 
@@ -12,6 +13,7 @@ struct ModelSettings
     SamplerState noiseSampler;
     bool hasPerlinNoise;
     float noiseIntensity;
+    float pixelWidth;
 };
 
 cbuffer VSCBuffer
@@ -38,25 +40,27 @@ struct VSIn
 
 float4 apply_perlin_noise(ModelSettings settings, float3 pos, float3 normal, float2 uv);
 
-//float3 calculate_normal_after_perlin(ModelSettings settings, float3 pos, float3 normal, float2 uv)
-//{
-//    const double delta = 0.0005;
+float3 calculate_normal_after_perlin(ModelSettings settings, float3 pos, float3 normal, float2 uv)
+{
+    const float delta = settings.pixelWidth;
+        
+    float4 center = apply_perlin_noise(settings, pos, normal, uv);
 
-//    float4 center = apply_perlin_noise(settings, pos, normal, uv);
+    float3 p1Pos = float3(pos.x + 0.001, pos.y, pos.z);
+    float2 p1Uv = float2(uv.x + delta, uv.y);
+    float4 p1 = apply_perlin_noise(settings, p1Pos, normal, p1Uv);
 
-//    pos = float3(pos.x + delta, pos.y, pos.z);
-//    uv = float2(uv.x + delta, uv.y);
-//    float4 p1 = apply_perlin_noise(settings, pos, normal, uv);
+    float3 p2Pos = float3(pos.x, pos.y, pos.z + 0.001);
+    float2 p2Uv = float2(uv.x, uv.y + delta);
+    float4 p2 = apply_perlin_noise(settings, p2Pos, normal, p2Uv);
     
-//    pos = float3(pos.x - delta, pos.y, pos.z + delta);
-//    uv = float2(uv.x - delta, uv.y + delta);
-//    float4 p2 = apply_perlin_noise(settings, pos, normal, uv);
-    
-//    float3 deltax = normalize(p1.xyz - center.xyz);
-//    float3 deltaz = normalize(p2.xyz - center.xyz);
+    float3 deltax = normalize(center.xyz - p1.xyz);
+    float3 deltaz = normalize(center.xyz - p2.xyz);
 
-//    return normalize(cross(deltax, deltaz));
-//}
+    float3 newNormal = cross(deltax, deltaz);
+    
+    return normalize(newNormal);
+}
 
 float4 apply_perlin_noise(ModelSettings settings, float3 pos, float3 normal, float2 uv)
 {
@@ -69,21 +73,25 @@ float4 apply_perlin_noise(ModelSettings settings, float3 pos, float3 normal, flo
 
 VSOut main(in VSIn input)
 {
-    const float delta = 0.0001f;
     VSOut output;
     ModelSettings obj = settings[input.modelIndex];
     
     float4x4 mvp = mul(viewProjection, obj.transform);
+    float4x4 normalMatrix = obj.transformIT;
 
-    float4 displacedObjSpacePos = apply_perlin_noise(obj, input.objSpacePos, input.normal, input.texCoord);
-    displacedObjSpacePos.y -= obj.noiseIntensity * 0.5f;
-
-    //if (obj.hasPerlinNoise)
-    //    output.normal = mul(obj.transform, float4(calculate_normal_after_perlin(obj, input.objSpacePos, input.normal, input.texCoord), 1)).xyz;
-    //else
-    output.normal = mul(obj.transform, float4(input.normal, 1)).xyz;
+    if (obj.hasPerlinNoise)
+    {
+        float4 displacedObjSpacePos = apply_perlin_noise(obj, input.objSpacePos, input.normal, input.texCoord);
+        displacedObjSpacePos.y -= obj.noiseIntensity * 0.5f;
+        output.normal = mul(normalMatrix, float4(calculate_normal_after_perlin(obj, input.objSpacePos, input.normal, input.texCoord), 0)).xyz;
+        output.pos = mul(mvp, displacedObjSpacePos);
+    }
+    else
+    {
+        output.pos = mul(mvp, float4(input.objSpacePos, 1));
+        output.normal = mul(normalMatrix, float4(input.normal, 0)).xyz;
+    }
     
-    output.pos = mul(mvp, displacedObjSpacePos);
     output.texCoord = input.texCoord;
     output.modelIndex = input.modelIndex;
     return output;

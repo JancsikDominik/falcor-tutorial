@@ -15,6 +15,12 @@ namespace Falcor::Tutorial
     class ParametircSurfaceRenderer final : public SampleApp
     {
     public:
+        enum ObjectType
+        {
+            Sphere,
+            Plane
+        };
+
         struct Vertex
         {
             float3 position;
@@ -30,7 +36,7 @@ namespace Falcor::Tutorial
             RasterizerState::FillMode fillMode = RasterizerState::FillMode::Solid;
             RasterizerState::CullMode cullMode = RasterizerState::CullMode::Back;
             float aspectRatio = 1280.f/720.f;
-            size_t parametricSurfaceResolution = 10;
+            size_t parametricSurfaceResolution = 100;
         };
 
         struct DirectionalLightSettings
@@ -58,6 +64,8 @@ namespace Falcor::Tutorial
             Texture::SharedPtr perlinNoise = nullptr;
 
             float noiseIntensity = 2.5f;
+
+            ObjectType type = Plane;
         };
 
         struct Settings
@@ -65,12 +73,6 @@ namespace Falcor::Tutorial
             RenderSettings renderSettings;
             std::vector<ModelSettings> modelSettings;
             DirectionalLightSettings lightSettings;
-        };
-
-        enum ObjectType
-        {
-            Sphere,
-            Plane
         };
 
         explicit ParametircSurfaceRenderer(const SampleAppConfig& config);

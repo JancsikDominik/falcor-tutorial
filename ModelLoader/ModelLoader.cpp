@@ -48,7 +48,8 @@ namespace Falcor::Tutorial
         pRenderContext->clearFbo(pTargetFbo.get(), {0, 0.25, 0, 1}, 1.0f, 0, FboAttachmentType::All);
 
         // vertex shader cbuffer variables
-        mpVars["VSCBuffer"]["modelMatrices"] = mSettings.modelSettings.transform.getMatrix(); 
+        mpVars["VSCBuffer"]["model"] = mSettings.modelSettings.transform.getMatrix();
+        mpVars["VSCBuffer"]["modelIT"] = rmcv::inverse(rmcv::transpose(mSettings.modelSettings.transform.getMatrix()));
         mpVars["VSCBuffer"]["viewProjection"] = mpCamera->getViewProjMatrix();
 
         // pixel shader cbuffer variables

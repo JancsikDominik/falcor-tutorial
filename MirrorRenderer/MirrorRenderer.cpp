@@ -171,6 +171,7 @@ namespace Falcor::Tutorial
         for (const auto& object : mObjects)
         {
             mpMainVars["VSCBuffer"]["model"] = object->getTransform().getMatrix();
+            mpMainVars["VSCBuffer"]["modelIT"] = transpose(inverse(object->getTransform().getMatrix()));
             mpMainVars["VSCBuffer"]["flipTextureOnAxis"] = static_cast<uint32_t>(object->getTextureFlipAxis());
 
             mpMainVars["PSCBuffer"]["materialAmbient"] = object->getSettings().ambient;
