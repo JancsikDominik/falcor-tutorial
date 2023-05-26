@@ -1,13 +1,7 @@
 struct ModelSettings
 {
-    float3 ambient;
-    float3 diffuse;
-    float3 specular;
-
     float4x4 transform;
     float4x4 transformIT;
-
-    Texture2D tex;
 
     Texture2D perlinNoise;
     SamplerState noiseSampler;

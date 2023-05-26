@@ -51,14 +51,19 @@ namespace Falcor::Tutorial
         mpCameraController->update();
         pRenderContext->clearFbo(pTargetFbo.get(), {0.1, 0.1, 0.1, 1}, 1.0f, 0, FboAttachmentType::All);
 
+        mpGraphicsVars["VSCBuffer"]["viewProjection"] = mpCamera->getViewProjMatrix();
+
+        // pixel shader cbuffer variables
+        mpGraphicsVars["PSCBuffer"]["lightAmbient"] = mSettings.lightSettings.ambient;
+        mpGraphicsVars["PSCBuffer"]["lightDiffuse"] = mSettings.lightSettings.diffuse;
+        mpGraphicsVars["PSCBuffer"]["lightSpecular"] = mSettings.lightSettings.specular;
+        mpGraphicsVars["PSCBuffer"]["lightDir"] = mSettings.lightSettings.lightDir;
+        mpGraphicsVars["PSCBuffer"]["cameraPosition"] = mpCamera->getPosition();
+
         for (int i = 0; i < mSettings.modelSettings.size(); i++)
         {
             mpGraphicsVars["VSCBuffer"]["settings"][i]["transform"] = mSettings.modelSettings[i].transform;
             mpGraphicsVars["VSCBuffer"]["settings"][i]["transformIT"] = inverse(transpose(mSettings.modelSettings[i].transform));
-            mpGraphicsVars["VSCBuffer"]["settings"][i]["ambient"] = mSettings.modelSettings[i].ambient;
-            mpGraphicsVars["VSCBuffer"]["settings"][i]["diffuse"] = mSettings.modelSettings[i].diffuse;
-            mpGraphicsVars["VSCBuffer"]["settings"][i]["specular"] = mSettings.modelSettings[i].specular;
-            mpGraphicsVars["VSCBuffer"]["settings"][i]["tex"] = mSettings.modelSettings[i].texture;
             mpGraphicsVars["VSCBuffer"]["settings"][i]["hasPerlinNoise"] = mSettings.modelSettings[i].perlinNoise != nullptr && mSettings.modelSettings[i].type == Plane;
             mpGraphicsVars["VSCBuffer"]["settings"][i]["pixelWidth"] = 1.f / perlinNoiseResolution;
 
@@ -69,28 +74,23 @@ namespace Falcor::Tutorial
                 mpGraphicsVars["VSCBuffer"]["settings"][i]["noiseIntensity"] = mSettings.modelSettings[i].noiseIntensity;
             }
 
-            mpGraphicsVars["PSCBuffer"]["modelSettings"][i]["transform"] = mSettings.modelSettings[i].transform;
             mpGraphicsVars["PSCBuffer"]["modelSettings"][i]["ambient"] = mSettings.modelSettings[i].ambient;
             mpGraphicsVars["PSCBuffer"]["modelSettings"][i]["diffuse"] = mSettings.modelSettings[i].diffuse;
             mpGraphicsVars["PSCBuffer"]["modelSettings"][i]["specular"] = mSettings.modelSettings[i].specular;
-            mpGraphicsVars["PSCBuffer"]["modelSettings"][i]["hasTexture"] = mSettings.modelSettings[i].texture != nullptr;
+            const bool hasTexture = mSettings.modelSettings[i].texture != nullptr;
+            mpGraphicsVars["PSCBuffer"]["modelSettings"][i]["hasTexture"] = hasTexture;
 
-            if (mSettings.modelSettings[i].texture != nullptr)
+            if (hasTexture)
             {
                 mpGraphicsVars["PSCBuffer"]["modelSettings"][i]["tex"] = mSettings.modelSettings[i].texture;
                 mpGraphicsVars["PSCBuffer"]["texSampler"] = mpTextureSampler;
             }
         }
-        mpGraphicsVars["VSCBuffer"]["viewProjection"] = mpCamera->getViewProjMatrix();
-
-        // pixel shader cbuffer variables
-        mpGraphicsVars["PSCBuffer"]["lightAmbient"] = mSettings.lightSettings.ambient;
-        mpGraphicsVars["PSCBuffer"]["lightDiffuse"] = mSettings.lightSettings.diffuse;
-        mpGraphicsVars["PSCBuffer"]["lightSpecular"] = mSettings.lightSettings.specular;
-        mpGraphicsVars["PSCBuffer"]["lightDir"] = mSettings.lightSettings.lightDir;
-        mpGraphicsVars["PSCBuffer"]["cameraPosition"] = mpCamera->getPosition();
 
         mpGraphicsState->setFbo(pTargetFbo);
+
+        if (mReadyToDraw)
+            pRenderContext->drawIndexed(mpGraphicsState.get(), mpGraphicsVars.get(), mpIndexBuffer->getElementCount(), 0, 0);
 
         if (mShouldGenerateNewNoise)
         {
@@ -108,9 +108,6 @@ namespace Falcor::Tutorial
             mShouldGenerateNewNoise = false;
             mNewNoiseIndex = -1;
         }
-
-        if (mReadyToDraw)
-            pRenderContext->drawIndexed(mpGraphicsState.get(), mpGraphicsVars.get(), mpIndexBuffer->getElementCount(), 0, 0);
 
         mFrameRate.newFrame();
         if (mSettings.renderSettings.showFPS)
@@ -303,10 +300,10 @@ namespace Falcor::Tutorial
 
     Buffer::SharedPtr ParametircSurfaceRenderer::generateModelVertexBuffers()
     {
-        const ResourceBindFlags bindFlags = Resource::BindFlags::Vertex | ResourceBindFlags::ShaderResource | ResourceBindFlags::UnorderedAccess;
+        const ResourceBindFlags bindFlags = Resource::BindFlags::Vertex | ResourceBindFlags::ShaderResource;
         Buffer::SharedPtr joinedBuffer;
 
-        std::vector<Vertex> vertexDataWithModelIndex;
+        std::vector<Vertex> vertData;
         for (size_t i = 0; i < mpModels.size(); i++)
         {
             for (const auto& vertexData : mpModels[i]->getVertices())
@@ -316,17 +313,17 @@ namespace Falcor::Tutorial
                 v.normal = vertexData.normal;
                 v.texCoord = vertexData.texCoord;
                 v.modelIndex = i;
-                vertexDataWithModelIndex.push_back(v);
+                vertData.push_back(v);
             }
         }
 
         Buffer::SharedPtr pBuffer = Buffer::createStructured(
             mpDevice.get(),
             sizeof(Vertex),
-            vertexDataWithModelIndex.size(),
+            vertData.size(),
             bindFlags,
             Buffer::CpuAccess::None,
-            vertexDataWithModelIndex.data()
+            vertData.data()
         );
 
         return pBuffer;
@@ -334,7 +331,7 @@ namespace Falcor::Tutorial
 
     void ParametircSurfaceRenderer::generateModelIndexBuffer()
     {
-        const ResourceBindFlags bindFlags = Resource::BindFlags::Index | ResourceBindFlags::ShaderResource | ResourceBindFlags::UnorderedAccess;
+        const ResourceBindFlags bindFlags = Resource::BindFlags::Index | ResourceBindFlags::ShaderResource;
         TriangleMesh::IndexList joinedIndices;
         uint32_t vertexCount = 0;
         for (const auto& pModel : mpModels)
@@ -361,10 +358,11 @@ namespace Falcor::Tutorial
 
     void ParametircSurfaceRenderer::createPlane()
     {
+        if (mpModels.size() >= 32)
+            return;
+
         const auto& plane = TriangleMesh::create();
         plane->setName("plane" + std::to_string(objCount[Plane]));
-        mpModels.push_back(plane);
-        objCount[Plane]++;
 
         const auto& res = mSettings.renderSettings.parametricSurfaceResolution;
         const float3& normal = { 0, 1, 0 };
@@ -397,6 +395,9 @@ namespace Falcor::Tutorial
             }
         }
 
+        mpModels.push_back(plane);
+        objCount[Plane]++;
+
         const Vao::SharedPtr pVao = createVao();
         if (pVao != nullptr)
         {
@@ -411,10 +412,18 @@ namespace Falcor::Tutorial
             mpGraphicsState->setVao(pVao);
             mFrameRate.reset();
         }
+        else
+        {
+            mpModels.pop_back();
+            objCount[Plane]--;
+        }
     }
 
     void ParametircSurfaceRenderer::createSphere()
     {
+        if (mpModels.size() >= 32)
+            return;
+
         const auto& cube = TriangleMesh::createSphere();
         cube->setName("sphere" + std::to_string(objCount[Sphere]));
         mpModels.push_back(cube);

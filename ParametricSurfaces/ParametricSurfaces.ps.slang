@@ -4,8 +4,6 @@ struct ModelSettings
     float3 diffuse;
     float3 specular;
 
-    float4x4 transform;
-
     bool hasTexture;
     Texture2D tex;
 };
