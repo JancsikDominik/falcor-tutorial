@@ -75,7 +75,6 @@ VSOut main(in VSIn input)
     if (obj.hasPerlinNoise)
     {
         float4 displacedObjSpacePos = apply_perlin_noise(obj, input.objSpacePos, input.normal, input.texCoord);
-        displacedObjSpacePos.y -= obj.noiseIntensity * 0.5f;
         float3 normalAfterPerlin = calculate_normal_after_perlin(obj, input.objSpacePos, input.normal, input.texCoord);
         output.normal = mul(obj.transformIT, float4(normalAfterPerlin, 0)).xyz;
         output.pos = mul(mvp, displacedObjSpacePos);
