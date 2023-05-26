@@ -60,7 +60,7 @@ namespace Falcor::Tutorial
             mpGraphicsVars["VSCBuffer"]["settings"][i]["specular"] = mSettings.modelSettings[i].specular;
             mpGraphicsVars["VSCBuffer"]["settings"][i]["tex"] = mSettings.modelSettings[i].texture;
             mpGraphicsVars["VSCBuffer"]["settings"][i]["hasPerlinNoise"] = mSettings.modelSettings[i].perlinNoise != nullptr && mSettings.modelSettings[i].type == Plane;
-            mpGraphicsVars["VSCBuffer"]["settings"][i]["pixelWidth"] = 1.f / 256;
+            mpGraphicsVars["VSCBuffer"]["settings"][i]["pixelWidth"] = 1.f / perlinNoiseResolution;
 
             if (mSettings.modelSettings[i].perlinNoise != nullptr)
             {
@@ -96,11 +96,14 @@ namespace Falcor::Tutorial
         {
             std::random_device rd;
             std::mt19937 gen(rd());
+            std::uniform_real_distribution<> seed(0, 10000);
 
-            mpComputeVars["CSCBuffer"]["res"] = 256.f;
-            mpComputeVars["CSCBuffer"]["seed"] = gen();
+            mpComputeVars["CSCBuffer"]["res"] = static_cast<float>(perlinNoiseResolution);
+            mpComputeVars["CSCBuffer"]["seed"] = static_cast<float>(seed(gen));
             mpComputeVars->setTexture("result", mSettings.modelSettings[mNewNoiseIndex].perlinNoise);
-            mpComputeProgram->dispatchCompute(pRenderContext, mpComputeVars.get(), uint3(256 / 16, 256 / 16, 1));
+            mpComputeProgram->dispatchCompute(
+                pRenderContext, mpComputeVars.get(), uint3(perlinNoiseResolution / 16, perlinNoiseResolution / 16, 1)
+            );
 
             mShouldGenerateNewNoise = false;
             mNewNoiseIndex = -1;
@@ -258,13 +261,13 @@ namespace Falcor::Tutorial
     {
         mSettings.modelSettings[modelIndex].perlinNoise = Texture::create2D(
             mpDevice.get(),
-            256,
-            256,
+            perlinNoiseResolution,
+            perlinNoiseResolution,
             ResourceFormat::RGBA16Float,
             1,
             Resource::kMaxPossible,
             nullptr,
-            Resource::BindFlags::ShaderResource | Resource::BindFlags::RenderTarget | Resource::BindFlags::UnorderedAccess
+            Resource::BindFlags::ShaderResource | Resource::BindFlags::UnorderedAccess
         );
     }
 
@@ -397,7 +400,13 @@ namespace Falcor::Tutorial
         const Vao::SharedPtr pVao = createVao();
         if (pVao != nullptr)
         {
-            mSettings.modelSettings.emplace_back();
+            ModelSettings settings;
+            settings.scale = {0.1, 0.1, 0.1};
+            Transform t;
+            t.setScaling(settings.scale);
+            settings.transform = t.getMatrix();
+
+            mSettings.modelSettings.push_back(settings);
             mReadyToDraw = true;
             mpGraphicsState->setVao(pVao);
             mFrameRate.reset();

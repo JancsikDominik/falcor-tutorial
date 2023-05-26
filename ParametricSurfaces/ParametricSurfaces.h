@@ -50,9 +50,9 @@ namespace Falcor::Tutorial
 
         struct ModelSettings
         {
-            float3 ambient = {0.2f, 0.3f, 0.5f};
-            float3 diffuse = {0.2f, 0.3f, 0.5f};
-            float3 specular = {0.2f, 0.3f, 0.5f};
+            float3 ambient = {0.8f, 0.52f, 0.247f};
+            float3 diffuse = {0.8f, 0.52f, 0.247f};
+            float3 specular = {0.f, 0.f, 0.f};
 
             float4x4 transform;
 
@@ -63,7 +63,7 @@ namespace Falcor::Tutorial
             Texture::SharedPtr texture = nullptr;
             Texture::SharedPtr perlinNoise = nullptr;
 
-            float noiseIntensity = 2.5f;
+            float noiseIntensity = 100.f;
 
             ObjectType type = Plane;
         };
@@ -127,5 +127,7 @@ namespace Falcor::Tutorial
         std::unordered_map<ObjectType, uint64_t> objCount;
 
         FrameRate mFrameRate;
+
+        const uint32_t perlinNoiseResolution = 512;
     };
 }
