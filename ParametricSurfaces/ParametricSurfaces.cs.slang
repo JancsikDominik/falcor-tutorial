@@ -57,38 +57,3 @@ float noise(float4 v)
            dot_gradient(random_gradient(gridCoord.x, gridCoord.w), v.xw) + // top left
            dot_gradient(random_gradient(gridCoord.z, gridCoord.w), v.zw); // top right
 }
-
-
-//	const X = Math.floor(x) & 255;
-//	const Y = Math.floor(y) & 255;
-
-//	const xf = x-Math.floor(x);
-//	const yf = y-Math.floor(y);
-
-//	const topRight =
-//new Vector2(xf-1.0, yf-1.0);
-//	const topLeft =
-//new Vector2(xf, yf-1.0);
-//	const bottomRight =
-//new Vector2(xf-1.0, yf);
-//	const bottomLeft =
-//new Vector2(xf, yf);
-	
-//	// Select a value from the permutation array for each of the 4 corners
-//	const valueTopRight = Permutation[Permutation[X+1]+Y+1];
-//	const valueTopLeft = Permutation[Permutation[X]+Y+1];
-//	const valueBottomRight = Permutation[Permutation[X+1]+Y];
-//	const valueBottomLeft = Permutation[Permutation[X]+Y];
-	
-//	const dotTopRight = topRight.dot(GetConstantVector(valueTopRight));
-//	const dotTopLeft = topLeft.dot(GetConstantVector(valueTopLeft));
-//	const dotBottomRight = bottomRight.dot(GetConstantVector(valueBottomRight));
-//	const dotBottomLeft = bottomLeft.dot(GetConstantVector(valueBottomLeft));
-	
-//	const u = Fade(xf);
-//	const v = Fade(yf);
-	
-//	return Lerp(u,
-//		Lerp(v, dotBottomLeft, dotTopLeft),
-//		Lerp(v, dotBottomRight, dotTopRight)
-//	);
