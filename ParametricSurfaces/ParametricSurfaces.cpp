@@ -64,10 +64,12 @@ namespace Falcor::Tutorial
         {
             mpGraphicsVars["VSCBuffer"]["settings"][i]["transform"] = mSettings.modelSettings[i].transform;
             mpGraphicsVars["VSCBuffer"]["settings"][i]["transformIT"] = inverse(transpose(mSettings.modelSettings[i].transform));
-            mpGraphicsVars["VSCBuffer"]["settings"][i]["hasPerlinNoise"] = mSettings.modelSettings[i].perlinNoise != nullptr && mSettings.modelSettings[i].type == Plane;
+            const bool hasPerlinNoise = mSettings.modelSettings[i].perlinNoise != nullptr &&
+                                        mSettings.modelSettings[i].type == Plane;
+            mpGraphicsVars["VSCBuffer"]["settings"][i]["hasPerlinNoise"] = hasPerlinNoise;
             mpGraphicsVars["VSCBuffer"]["settings"][i]["texelWidth"] = 1.f / perlinNoiseResolution;
 
-            if (mSettings.modelSettings[i].perlinNoise != nullptr)
+            if (hasPerlinNoise)
             {
                 mpGraphicsVars["VSCBuffer"]["settings"][i]["perlinNoise"] = mSettings.modelSettings[i].perlinNoise;
                 mpGraphicsVars["VSCBuffer"]["settings"][i]["noiseSampler"] = mpNoiseSampler;
@@ -100,6 +102,7 @@ namespace Falcor::Tutorial
 
             mpComputeVars["CSCBuffer"]["res"] = static_cast<float>(perlinNoiseResolution);
             mpComputeVars["CSCBuffer"]["seed"] = static_cast<float>(seed(gen));
+            mpComputeVars["CSCBuffer"]["freq"] = 6;
             mpComputeVars->setTexture("result", mSettings.modelSettings[mNewNoiseIndex].perlinNoise);
             mpComputeProgram->dispatchCompute(
                 pRenderContext, mpComputeVars.get(), uint3(perlinNoiseResolution / 16, perlinNoiseResolution / 16, 1)

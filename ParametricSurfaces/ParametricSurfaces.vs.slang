@@ -71,19 +71,19 @@ VSOut main(in VSIn input)
     ModelSettings obj = settings[input.modelIndex];
     
     float4x4 mvp = mul(viewProjection, obj.transform);
-    float4x4 normalMatrix = obj.transformIT;
 
     if (obj.hasPerlinNoise)
     {
         float4 displacedObjSpacePos = apply_perlin_noise(obj, input.objSpacePos, input.normal, input.texCoord);
         displacedObjSpacePos.y -= obj.noiseIntensity * 0.5f;
-        output.normal = mul(normalMatrix, float4(calculate_normal_after_perlin(obj, input.objSpacePos, input.normal, input.texCoord), 0)).xyz;
+        float3 normalAfterPerlin = calculate_normal_after_perlin(obj, input.objSpacePos, input.normal, input.texCoord);
+        output.normal = mul(obj.transformIT, float4(normalAfterPerlin, 0)).xyz;
         output.pos = mul(mvp, displacedObjSpacePos);
     }
     else
     {
         output.pos = mul(mvp, float4(input.objSpacePos, 1));
-        output.normal = mul(normalMatrix, float4(input.normal, 0)).xyz;
+        output.normal = mul(obj.transformIT, float4(input.normal, 0)).xyz;
     }
     
     output.texCoord = input.texCoord;
