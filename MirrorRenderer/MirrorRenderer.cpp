@@ -65,8 +65,10 @@ namespace Falcor::Tutorial
 
         mpObserver = std::make_shared<FpsObserver>(TriangleMesh::createFromFile("C:/Users/Jancsik/Documents/suzanne.obj"), mpDevice.get(), "Player");
         Transform observerTransform;
-        observerTransform.setTranslation({0, 0, -7});
+        observerTransform.setTranslation({0, 0, -15});
+        observerTransform.setScaling({00.3, 0.3, 0.3});
         mpObserver->setTransform(observerTransform);
+        mpObserver->update();
         mObjects.push_back(mpObserver);
     }
 

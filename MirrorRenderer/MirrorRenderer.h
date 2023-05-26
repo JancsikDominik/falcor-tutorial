@@ -5,7 +5,6 @@
 #include "Core/SampleApp.h"
 #include "RenderGraph/BasePasses/FullScreenPass.h"
 #include "Scene/Camera/Camera.h"
-#include "Scene/Camera/CameraController.h"
 
 namespace Falcor::Tutorial
 {

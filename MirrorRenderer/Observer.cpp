@@ -10,7 +10,7 @@ namespace Falcor::Tutorial
     Observer::Observer(TriangleMesh::SharedPtr mesh, Device* device, const std::string_view name)
         : Object(mesh, device, name), mpCamera(Camera::create())
     {
-        mpCamera->setDepthRange(0.5, 100);
+        mpCamera->setDepthRange(0.5f, 100);
     }
 
     void Observer::setTransform(Transform transform)
@@ -89,6 +89,7 @@ namespace Falcor::Tutorial
             Transform t;
             t.setTranslation(mpCamera->getPosition());
             t.setRotation(getCameraRotation());
+            t.setScaling(mSettings.scale);
             setTransform(t);
             return true;
         }

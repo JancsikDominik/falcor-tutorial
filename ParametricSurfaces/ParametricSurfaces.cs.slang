@@ -55,5 +55,5 @@ float noise(float4 v)
     return dot_gradient(random_gradient(gridCoord.x, gridCoord.y), v.xy) + // bottom left
            dot_gradient(random_gradient(gridCoord.z, gridCoord.y), v.zy) + // bottom right
            dot_gradient(random_gradient(gridCoord.x, gridCoord.w), v.xw) + // top left
-           dot_gradient(random_gradient(gridCoord.z, gridCoord.w), v.zw); // top right
+           dot_gradient(random_gradient(gridCoord.z, gridCoord.w), v.zw);  // top right
 }

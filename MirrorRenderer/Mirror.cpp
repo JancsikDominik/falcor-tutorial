@@ -14,7 +14,7 @@ namespace Falcor::Tutorial
         mpTexture = mpFbo->getColorTexture(0);
 
         mpCamera->setDepthRange(.1f, 200.f);
-        mpCamera->setFocalLength(22.75f);
+        mpCamera->setFocalLength(44.f);
         mpCamera->setAspectRatio((size.x * mTextureResolution) / (size.y * mTextureResolution));
         mpCamera->setUpVector({0, 1, 0});
 
@@ -34,13 +34,6 @@ namespace Falcor::Tutorial
     void RenderToTextureMirror::setTransform(Transform transform)
     {
         mpCamera->setPosition(transform.getTranslation());
-
-        /*Transform cameraRotation;
-        float3 rotationAngles = transform.getRotationEuler();
-        rotationAngles = -rotationAngles;
-        cameraRotation.setRotationEuler(transform.getRotationEuler());
-
-        mpCamera->setUpVector(float3(0, 0, 1) * rmcv::mat3(cameraRotation.getMatrix()));*/
 
         const auto& inverseTranspose4by4 = transpose(inverse(transform.getMatrix()));
         const rmcv::mat3& inverseTranspose = inverseTranspose4by4;
