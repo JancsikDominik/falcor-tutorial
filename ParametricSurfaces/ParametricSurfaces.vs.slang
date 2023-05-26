@@ -7,7 +7,7 @@ struct ModelSettings
     SamplerState noiseSampler;
     bool hasPerlinNoise;
     float noiseIntensity;
-    float pixelWidth;
+    float texelWidth;
 };
 
 cbuffer VSCBuffer
@@ -36,7 +36,7 @@ float4 apply_perlin_noise(ModelSettings settings, float3 pos, float3 normal, flo
 
 float3 calculate_normal_after_perlin(ModelSettings settings, float3 pos, float3 normal, float2 uv)
 {
-    const float delta = settings.pixelWidth;
+    const float delta = settings.texelWidth;
         
     float4 center = apply_perlin_noise(settings, pos, normal, uv);
 

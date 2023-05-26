@@ -65,7 +65,7 @@ namespace Falcor::Tutorial
             mpGraphicsVars["VSCBuffer"]["settings"][i]["transform"] = mSettings.modelSettings[i].transform;
             mpGraphicsVars["VSCBuffer"]["settings"][i]["transformIT"] = inverse(transpose(mSettings.modelSettings[i].transform));
             mpGraphicsVars["VSCBuffer"]["settings"][i]["hasPerlinNoise"] = mSettings.modelSettings[i].perlinNoise != nullptr && mSettings.modelSettings[i].type == Plane;
-            mpGraphicsVars["VSCBuffer"]["settings"][i]["pixelWidth"] = 1.f / perlinNoiseResolution;
+            mpGraphicsVars["VSCBuffer"]["settings"][i]["texelWidth"] = 1.f / perlinNoiseResolution;
 
             if (mSettings.modelSettings[i].perlinNoise != nullptr)
             {
