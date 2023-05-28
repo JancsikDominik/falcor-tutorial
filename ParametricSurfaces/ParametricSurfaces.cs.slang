@@ -46,6 +46,8 @@ float dot_gradient(float2 g, float2 v)
     return dot(g, v) * fade(v.x) * fade(v.y);
 }
 
+
+// https://fancyfennec.medium.com/perlin-noise-and-untiy-compute-shaders-f00736a002a4#e546
 float noise(float4 v)
 {
     v += float4(seed, 0.0, seed, 0.0);

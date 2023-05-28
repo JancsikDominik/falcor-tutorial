@@ -13,12 +13,6 @@ namespace Falcor::Tutorial
         mpCamera->setDepthRange(0.5f, 100);
     }
 
-    void Observer::setTransform(Transform transform)
-    {
-        mpCamera->setPosition(transform.getTranslation());
-        Object::setTransform(transform);
-    }
-
     float3 Observer::getCameraRotation() const
     {
         auto viewMatrix = mpCamera->getViewMatrix();
@@ -70,6 +64,12 @@ namespace Falcor::Tutorial
     FpsObserver::FpsObserver(TriangleMesh::SharedPtr mesh, Device* device, const std::string_view name)
         : Observer(mesh, device, name), mpCameraController(FirstPersonCameraController::create(mpCamera))
     {
+    }
+
+    void FpsObserver::setTransform(Transform transform)
+    {
+        mpCamera->setPosition(transform.getTranslation());
+        Object::setTransform(transform);
     }
 
     bool FpsObserver::onMouseEvent(const MouseEvent& mouseEvent)

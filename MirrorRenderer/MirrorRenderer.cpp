@@ -211,13 +211,12 @@ namespace Falcor::Tutorial
         Transform floorTransform;
         floorTransform.setTranslation({0, -3.5, 0});
         floor->setTransform(floorTransform);
-        floor->setAmbient({1, 1, 1});
-        floor->setDiffuse({1, 1, 1});
-        floor->setSpecular({1, 1, 1});
-        floor->setTexture(Texture::createFromFile(mpDevice.get(), "C:/Users/Jancsik/Documents/floorTexture.jpg", true, true));
+        floor->setAmbient({0.8f, 0.52f, 0.247f});
+        floor->setDiffuse({0.8f, 0.52f, 0.247f});
+        floor->setSpecular({0, 0, 0});
         mObjects.push_back(floor);
 
-        for (uint32_t i = 0; i < 32; i++)
+        for (uint32_t i = 0; i < 20; i++)
         {
             const auto pMesh = i % 2 == 0 ? TriangleMesh::createCube({0.5, 0.5, 0.5}) : TriangleMesh::createSphere(0.25);
             mObjects.push_back(std::make_shared<Object>(pMesh, mpDevice.get(), "cube" + std::to_string(i)));

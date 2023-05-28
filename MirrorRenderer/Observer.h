@@ -13,7 +13,7 @@ namespace Falcor::Tutorial
 
         using SharedPtr = std::shared_ptr<Observer>;
 
-        void setTransform(Transform transform) override;
+        void setTransform(Transform transform) override = 0;
 
         virtual bool onMouseEvent(const MouseEvent& mouseEvent) = 0;
         virtual bool onKeyEvent(const KeyboardEvent& keyboardEvent) = 0;
@@ -32,6 +32,8 @@ namespace Falcor::Tutorial
     public:
         FpsObserver(TriangleMesh::SharedPtr mesh, Device* device, const std::string_view name);
 
+        void setTransform(Transform transform) override;
+
         bool onMouseEvent(const MouseEvent& mouseEvent) override;
         bool onKeyEvent(const KeyboardEvent& keyboardEvent) override;
         bool update() override;
@@ -39,5 +41,4 @@ namespace Falcor::Tutorial
     private:
         FirstPersonCameraController::SharedPtr mpCameraController;
     };
-
 }

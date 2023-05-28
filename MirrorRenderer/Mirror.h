@@ -9,7 +9,6 @@ namespace Falcor::Tutorial
     {
     public:
         // mirror can only be a quad
-        RenderToTextureMirror(TriangleMesh::SharedPtr mesh, Device* device, const std::string_view name) = delete;
         RenderToTextureMirror(const float2& size, Device* device, std::string_view name);
 
         void setTexture(Texture::SharedPtr texture) override;
