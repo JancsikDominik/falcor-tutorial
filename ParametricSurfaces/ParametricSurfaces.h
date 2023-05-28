@@ -102,6 +102,8 @@ namespace Falcor::Tutorial
         void createPlane();
         void createSphere();
 
+        void executeStressTest(RenderContext*);
+
         Settings mSettings;
 
         Camera::SharedPtr mpCamera;
@@ -129,5 +131,7 @@ namespace Falcor::Tutorial
         FrameRate mFrameRate;
 
         const uint32_t perlinNoiseResolution = 512;
+
+        bool mIsStressTesting = false;
     };
 }

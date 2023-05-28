@@ -1,5 +1,7 @@
 #include "ParametricSurfaces.h"
 
+#include <fstream>
+
 #include "Utils/UI/TextRenderer.h"
 #include <random>
 
@@ -112,6 +114,11 @@ namespace Falcor::Tutorial
             mNewNoiseIndex = -1;
         }
 
+        if (mIsStressTesting)
+        {
+            executeStressTest(pRenderContext);
+        }
+
         mFrameRate.newFrame();
         if (mSettings.renderSettings.showFPS)
             TextRenderer::render(pRenderContext, mFrameRate.getMsg(), pTargetFbo, {10, 10});
@@ -168,6 +175,9 @@ namespace Falcor::Tutorial
 
         if (window.button("Generate plane"))
             createPlane();
+
+        if (window.button("Start stress test"))
+            mIsStressTesting = true;
 
         if (auto lightGroup = window.group("Directional light settings"))
         {
@@ -444,6 +454,47 @@ namespace Falcor::Tutorial
         }
     }
 
+    void ParametircSurfaceRenderer::executeStressTest(RenderContext* pRenderContext)
+    {
+        std::random_device rd;
+        std::mt19937 gen(rd());
+        std::uniform_real_distribution<> seed(0, 10000);
+
+        std::vector<Texture::SharedPtr> testTextures;
+
+        constexpr int testSize = 100;
+
+        for (int i = 0; i < testSize; i++)
+        {
+            testTextures.push_back(Texture::create2D(
+                mpDevice.get(), perlinNoiseResolution, perlinNoiseResolution, ResourceFormat::RGBA16Float, 1, Resource::kMaxPossible,
+                nullptr, Resource::BindFlags::ShaderResource | Resource::BindFlags::UnorderedAccess
+            ));
+        }
+
+        CpuTimer timer;
+        const CpuTimer::TimePoint startTime = CpuTimer::getCurrentTimePoint();
+        // generating 10 noises
+        for (int i = 0; i < testSize; i++)
+        {
+            mpComputeVars["CSCBuffer"]["res"] = static_cast<float>(perlinNoiseResolution);
+            mpComputeVars["CSCBuffer"]["seed"] = static_cast<float>(seed(gen));
+            mpComputeVars["CSCBuffer"]["freq"] = 6;
+
+            mpComputeVars->setTexture("result", testTextures[i]);
+            mpComputeProgram->dispatchCompute(
+                pRenderContext, mpComputeVars.get(), uint3(perlinNoiseResolution / 16, perlinNoiseResolution / 16, 1)
+            );
+        }
+        const CpuTimer::TimePoint endTime = timer.update();
+        std::ofstream file("perlinNoiseStressTestResult.txt");
+
+        file << "It took " << CpuTimer::calcDuration(startTime, endTime) << " milliseconds, to generate " << testSize << " height maps\n";
+
+        file.close();
+
+        mIsStressTesting = false;
+    }
 }
 
 int main()
